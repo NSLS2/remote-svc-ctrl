@@ -104,12 +104,6 @@ def main():
         default=None,
         help="SSH target as user@host (default: localhost)",
     )
-    parser.add_argument(
-        "--bob",
-        metavar="FILE",
-        default=None,
-        help="Generate a Phoebus .bob file and exit",
-    )
     args = parser.parse_args()
 
     create_ioc(args.prefix, args.service, args.host)
