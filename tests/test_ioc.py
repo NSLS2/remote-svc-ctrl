@@ -96,7 +96,12 @@ def test_mbbi_labels_load_state():
 def test_mbbi_labels_active_state():
     labels = _mbbi_labels(ActiveState)
     assert labels == (
-        "active", "reloading", "inactive", "failed", "activating", "deactivating"
+        "active",
+        "reloading",
+        "inactive",
+        "failed",
+        "activating",
+        "deactivating",
     )
 
 
