@@ -66,6 +66,7 @@
     <y>105</y>
     <width>360</width>
     <height>25</height>
+    <border_alarm_sensitive>true</border_alarm_sensitive>
   </widget>
   <widget type="label" version="2.0.0">
     <name>UnitFile Label</name>
@@ -114,6 +115,7 @@
     <y>195</y>
     <width>360</width>
     <height>25</height>
+    <border_alarm_sensitive>true</border_alarm_sensitive>
   </widget>
   <widget type="label" version="2.0.0">
     <name>SubState Label</name>
@@ -130,6 +132,7 @@
     <y>225</y>
     <width>360</width>
     <height>25</height>
+    <border_alarm_sensitive>true</border_alarm_sensitive>
   </widget>
   <widget type="label" version="2.0.0">
     <name>Since Label</name>
