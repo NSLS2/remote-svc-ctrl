@@ -1,3 +1,5 @@
+"""Systemd service interaction via systemctl."""
+
 import re
 import subprocess
 from dataclasses import dataclass
@@ -22,8 +24,7 @@ def run_systemctl(command: str, service: str, host: str | None = None) -> str:
     cmd += [command, service]
     result = subprocess.run(
         cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
         timeout=10,
     )
@@ -32,6 +33,8 @@ def run_systemctl(command: str, service: str, host: str | None = None) -> str:
 
 @dataclass
 class ServiceStatus:
+    """Parsed systemctl status output."""
+
     unit: str
     description: str
     load_state: str
@@ -49,7 +52,6 @@ class ServiceStatus:
 
 def parse_systemctl_status(output: str) -> ServiceStatus:
     """Parse the output of `systemctl status <service>` into a ServiceStatus."""
-
     lines = output.strip().splitlines()
 
     # First line: ● sshd.service - OpenSSH server daemon
@@ -84,7 +86,9 @@ def parse_systemctl_status(output: str) -> ServiceStatus:
     sub_state = ""
     since: datetime | None = None
     active_raw = _get_field("Active")
-    active_match = re.match(r"(\w+)\s+\((\w+)\)(?:\s+since\s+(.+?)(?:;.*)?)?$", active_raw)
+    active_match = re.match(
+        r"(\w+)\s+\((\w+)\)(?:\s+since\s+(.+?)(?:;.*)?)?$", active_raw
+    )
     if active_match:
         active_state = active_match.group(1)
         sub_state = active_match.group(2)
@@ -92,7 +96,9 @@ def parse_systemctl_status(output: str) -> ServiceStatus:
         if since_str:
             # Format: "Fri 2026-05-08 06:40:50 EDT"
             # Strip timezone abbreviation and parse
-            since_parts = re.match(r"\w+\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})", since_str)
+            since_parts = re.match(
+                r"\w+\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})", since_str
+            )
             if since_parts:
                 since = datetime.strptime(since_parts.group(1), "%Y-%m-%d %H:%M:%S")
     elif active_raw:
@@ -135,4 +141,3 @@ def parse_systemctl_status(output: str) -> ServiceStatus:
         cpu=cpu,
         cgroup=cgroup,
     )
-

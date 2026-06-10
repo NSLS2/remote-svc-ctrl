@@ -1,22 +1,34 @@
 """EPICS soft IOC that monitors a systemd service and exposes PVs."""
 
 import argparse
-import threading
-import time
+import asyncio
 from enum import IntEnum
 
 from softioc import builder, softioc
+from softioc.asyncio_dispatcher import AsyncioDispatcher
 
 from .systemd import parse_systemctl_status, run_systemctl
 
 
 class Severity:
+    """EPICS alarm severity constants."""
+
     NO_ALARM = "NO_ALARM"
     MINOR = "MINOR"
     MAJOR = "MAJOR"
 
 
-class LoadState(IntEnum):
+class _StateEnum(IntEnum):
+    """Base for systemd state enums with an mbbi label."""
+
+    @property
+    def label(self) -> str:
+        return self.name.lower().replace("_", "-")
+
+
+class LoadState(_StateEnum):
+    """Systemd unit load states."""
+
     LOADED = 0
     NOT_FOUND = 1
     MASKED = 2
@@ -29,12 +41,10 @@ class LoadState(IntEnum):
             return Severity.MAJOR
         return Severity.NO_ALARM
 
-    @property
-    def label(self) -> str:
-        return self.name.lower().replace("_", "-")
 
+class EnabledState(_StateEnum):
+    """Systemd unit enabled states."""
 
-class EnabledState(IntEnum):
     ENABLED = 0
     DISABLED = 1
     STATIC = 2
@@ -43,12 +53,10 @@ class EnabledState(IntEnum):
     INDIRECT = 5
     LINKED = 6
 
-    @property
-    def label(self) -> str:
-        return self.name.lower()
 
+class ActiveState(_StateEnum):
+    """Systemd unit active states."""
 
-class ActiveState(IntEnum):
     ACTIVE = 0
     RELOADING = 1
     INACTIVE = 2
@@ -62,12 +70,10 @@ class ActiveState(IntEnum):
             return Severity.MAJOR
         return Severity.NO_ALARM
 
-    @property
-    def label(self) -> str:
-        return self.name.lower()
 
+class SubState(_StateEnum):
+    """Systemd unit sub-states."""
 
-class SubState(IntEnum):
     RUNNING = 0
     DEAD = 1
     EXITED = 2
@@ -91,19 +97,29 @@ class SubState(IntEnum):
             return Severity.MAJOR
         return Severity.NO_ALARM
 
-    @property
-    def label(self) -> str:
-        return self.name.lower().replace("_", "-")
-
 
 # Severity field name prefixes for mbbi state indices 0-15
 _SV_PREFIXES = (
-    "ZR", "ON", "TW", "TH", "FR", "FV", "SX", "SV",
-    "EI", "NI", "TE", "EL", "TV", "TT", "FT", "FF",
+    "ZR",
+    "ON",
+    "TW",
+    "TH",
+    "FR",
+    "FV",
+    "SX",
+    "SV",
+    "EI",
+    "NI",
+    "TE",
+    "EL",
+    "TV",
+    "TT",
+    "FT",
+    "FF",
 )
 
 
-def _mbbi_kwargs(enum_cls: type[IntEnum]) -> dict[str, str]:
+def _mbbi_kwargs(enum_cls: type[_StateEnum]) -> dict[str, str]:
     """Build severity keyword args for builder.mbbIn from an enum class."""
     kwargs = {}
     for member in enum_cls:
@@ -113,12 +129,12 @@ def _mbbi_kwargs(enum_cls: type[IntEnum]) -> dict[str, str]:
     return kwargs
 
 
-def _mbbi_labels(enum_cls: type[IntEnum]) -> tuple[str, ...]:
+def _mbbi_labels(enum_cls: type[_StateEnum]) -> tuple[str, ...]:
     """Return the ordered labels for an mbbi enum."""
     return tuple(m.label for m in enum_cls)
 
 
-def _state_index(enum_cls: type[IntEnum], value: str) -> int:
+def _state_index(enum_cls: type[_StateEnum], value: str) -> int:
     """Return the index of value in the enum by label, or 0 if not found."""
     for member in enum_cls:
         if member.label == value:
@@ -181,17 +197,18 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
     builder.boolOut("Restart", on_update=_on_restart, initial_value=False)
 
     # --- Build and start IOC ---
+    dispatcher = AsyncioDispatcher()
     builder.LoadDatabase()
-    softioc.iocInit()
+    softioc.iocInit(dispatcher)
 
-    # --- Polling thread ---
-    def _poll():
+    # --- Polling task ---
+    async def _poll():
         while True:
             try:
                 output = run_systemctl("status", service, host)
                 status = parse_systemctl_status(output)
             except Exception:
-                time.sleep(1)
+                await asyncio.sleep(1)
                 continue
 
             pv_unit.set(status.unit)
@@ -201,24 +218,20 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
             pv_enabled.set(_state_index(EnabledState, status.enabled))
             pv_active_state.set(_state_index(ActiveState, status.active_state))
             pv_sub_state.set(_state_index(SubState, status.sub_state))
-            pv_since.set(
-                status.since.isoformat() if status.since else ""
-            )
+            pv_since.set(status.since.isoformat() if status.since else "")
             pv_main_pid.set(status.main_pid or 0)
             pv_tasks.set(status.tasks or 0)
             pv_memory.set(status.memory)
             pv_cpu.set(status.cpu)
             pv_cgroup.set(status.cgroup)
 
-            time.sleep(1)
+            await asyncio.sleep(1)
 
-    poll_thread = threading.Thread(target=_poll, daemon=True)
-    poll_thread.start()
-
-    softioc.interactive_ioc(globals())
+    dispatcher.loop.call_soon_threadsafe(dispatcher.loop.create_task, _poll())
 
 
 def main():
+    """CLI entrypoint for the remote service control IOC."""
     parser = argparse.ArgumentParser(
         description="EPICS IOC for monitoring/controlling a systemd service"
     )
@@ -232,6 +245,7 @@ def main():
     args = parser.parse_args()
 
     create_ioc(args.prefix, args.service, args.host)
+    softioc.interactive_ioc(globals())
 
 
 if __name__ == "__main__":
