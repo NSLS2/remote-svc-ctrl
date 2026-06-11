@@ -15,10 +15,10 @@ This can be particularly useful for managing acquisition/control services on ven
 
 ```bash
 # Monitor a local service
-remote-svc-ctrl "XF:28ID-CT{Svc:MyApp}" my-app.service
+remote-svc-ctrl "XF:28ID1-CT{SVC-MyApp:1}" my-app.service
 
 # Monitor a service on a remote host via SSH
-remote-svc-ctrl "XF:28ID-CT{Svc:MyApp}" my-app.service --host user@server
+remote-svc-ctrl "XF:28ID1-CT{SVC-MyApp:1}" my-app.service --host user@server
 ```
 
 ## Operator Screen
