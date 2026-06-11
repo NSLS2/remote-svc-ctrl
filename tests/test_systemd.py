@@ -4,7 +4,14 @@ from datetime import datetime
 
 from pytest_mock import MockerFixture
 
-from remote_svc_ctrl.systemd import MemoryUsage, parse_systemctl_status, run_systemctl
+from remote_svc_ctrl.systemd import (
+    MemoryUsage,
+    _parse_cpu_time,
+    _parse_log_lines,
+    _parse_memory_field,
+    parse_systemctl_status,
+    run_systemctl,
+)
 
 ACTIVE_STATUS_OUTPUT = """\
 ● sshd.service - OpenSSH server daemon
@@ -136,3 +143,100 @@ def test_run_systemctl_remote(mocker: MockerFixture):
         timeout=10,
     )
     assert result == "output"
+
+
+def test_run_systemctl_raises_on_failure(mocker: MockerFixture):
+    mock_run = mocker.patch("remote_svc_ctrl.systemd.subprocess.run")
+    mock_run.return_value.stdout = ""
+    mock_run.return_value.stderr = "Access denied\n"
+    mock_run.return_value.returncode = 1
+
+    import pytest
+
+    with pytest.raises(RuntimeError, match="Access denied"):
+        run_systemctl("start", "sshd.service")
+
+
+def test_run_systemctl_allows_exit_code_3(mocker: MockerFixture):
+    """Exit code 3 means unit not active, normal for status on stopped services."""
+    mock_run = mocker.patch("remote_svc_ctrl.systemd.subprocess.run")
+    mock_run.return_value.stdout = "inactive output"
+    mock_run.return_value.returncode = 3
+
+    result = run_systemctl("status", "stopped.service")
+    assert result == "inactive output"
+
+
+# --- _parse_cpu_time ---
+
+
+def test_parse_cpu_time_seconds():
+    assert _parse_cpu_time("5.227s") == 5.227
+
+
+def test_parse_cpu_time_milliseconds():
+    assert _parse_cpu_time("23ms") == 0.023
+
+
+def test_parse_cpu_time_minutes_and_seconds():
+    assert _parse_cpu_time("1min 5.227s") == 65.227
+
+
+def test_parse_cpu_time_hours_minutes_seconds():
+    assert _parse_cpu_time("1h 2min 3.456s") == 3723.456
+
+
+def test_parse_cpu_time_empty():
+    assert _parse_cpu_time("") == 0.0
+
+
+# --- _parse_memory_field ---
+
+
+def test_parse_memory_field_simple():
+    result = _parse_memory_field("5.1M")
+    assert result == MemoryUsage(
+        current=5.1 * 1024**2, peak=0.0, swap=0.0, swap_peak=0.0
+    )
+
+
+def test_parse_memory_field_with_all_subfields():
+    result = _parse_memory_field("176K (peak: 22.7M, swap: 1.2M, swap peak: 1.2M)")
+    assert result.current == 176 * 1024
+    assert result.peak == 22.7 * 1024**2
+    assert result.swap == 1.2 * 1024**2
+    assert result.swap_peak == 1.2 * 1024**2
+
+
+def test_parse_memory_field_zero():
+    result = _parse_memory_field("0B")
+    assert result == MemoryUsage(current=0.0, peak=0.0, swap=0.0, swap_peak=0.0)
+
+
+def test_parse_memory_field_empty():
+    result = _parse_memory_field("")
+    assert result == MemoryUsage(current=0.0, peak=0.0, swap=0.0, swap_peak=0.0)
+
+
+# --- _parse_log_lines ---
+
+
+def test_parse_log_lines_extracts_messages():
+    lines = [
+        "Jun 10 09:21:40 alma10 sshd-session[3467350]: Connection from 1.2.3.4",
+        "Jun 10 09:21:46 alma10 sshd-session[3467366]: Invalid user foo",
+    ]
+    result = _parse_log_lines(lines)
+    assert len(result) == 2
+    assert "Connection from 1.2.3.4" in result[0]
+    assert "Invalid user foo" in result[1]
+
+
+def test_parse_log_lines_skips_non_log_lines():
+    lines = [
+        "     Loaded: loaded (/usr/lib/systemd/system/sshd.service; enabled)",
+        "Jun 10 09:21:40 alma10 sshd[123]: test message",
+    ]
+    result = _parse_log_lines(lines)
+    assert len(result) == 1
+    assert "test message" in result[0]

@@ -1,11 +1,16 @@
 """Tests for remote_svc_ctrl.ioc module."""
 
+from datetime import datetime, timedelta
+
 from remote_svc_ctrl.ioc import (
     ActiveState,
     EnabledState,
     LoadState,
     Severity,
     SubState,
+    _format_cpu_time,
+    _format_duration,
+    _format_memory,
     _mbbi_kwargs,
     _mbbi_labels,
     _state_index,
@@ -130,3 +135,88 @@ def test_state_index_unknown_value_returns_zero():
 
 def test_state_index_empty_string_returns_zero():
     assert _state_index(LoadState, "") == 0
+
+
+# --- _format_memory ---
+
+
+def test_format_memory_kilobytes():
+    val, egu = _format_memory(512 * 1024)  # 512 KB
+    assert val == 512.0
+    assert egu == "KB"
+
+
+def test_format_memory_megabytes():
+    val, egu = _format_memory(128 * 1024**2)  # 128 MB
+    assert val == 128.0
+    assert egu == "MB"
+
+
+def test_format_memory_gigabytes():
+    val, egu = _format_memory(2 * 1024**3)  # 2 GB
+    assert val == 2.0
+    assert egu == "GB"
+
+
+def test_format_memory_zero():
+    val, egu = _format_memory(0)
+    assert val == 0.0
+    assert egu == "KB"
+
+
+# --- _format_cpu_time ---
+
+
+def test_format_cpu_time_milliseconds():
+    val, egu = _format_cpu_time(0.5)
+    assert val == 500.0
+    assert egu == "ms"
+
+
+def test_format_cpu_time_seconds():
+    val, egu = _format_cpu_time(5.227)
+    assert val == 5.227
+    assert egu == "s"
+
+
+def test_format_cpu_time_minutes():
+    val, egu = _format_cpu_time(120.0)
+    assert val == 2.0
+    assert egu == "min"
+
+
+def test_format_cpu_time_hours():
+    val, egu = _format_cpu_time(7200.0)
+    assert val == 2.0
+    assert egu == "h"
+
+
+# --- _format_duration ---
+
+
+def test_format_duration_none():
+    assert _format_duration(None) == ""
+
+
+def test_format_duration_seconds():
+    since = datetime.now() - timedelta(seconds=45)
+    result = _format_duration(since)
+    assert result == "45s" or result == "44s"  # Allow 1s timing tolerance
+
+
+def test_format_duration_minutes():
+    since = datetime.now() - timedelta(minutes=5, seconds=30)
+    result = _format_duration(since)
+    assert result.startswith("5m")
+
+
+def test_format_duration_hours():
+    since = datetime.now() - timedelta(hours=2, minutes=15, seconds=10)
+    result = _format_duration(since)
+    assert result.startswith("2h")
+
+
+def test_format_duration_days():
+    since = datetime.now() - timedelta(days=3, hours=1, minutes=5, seconds=20)
+    result = _format_duration(since)
+    assert result.startswith("3d")
