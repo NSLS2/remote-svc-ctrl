@@ -46,4 +46,5 @@ uv run pre-commit run --all-files   # Linting and formatting
 - Python >= 3.11
 - [pythonSoftIOC](https://github.com/dls-controls/pythonSoftIOC) >= 4.7.0
 - `systemctl` available on the target host
+- For non-root service control: appropriate polkit rules configured on the target host
 - SSH key-based auth configured for remote hosts
