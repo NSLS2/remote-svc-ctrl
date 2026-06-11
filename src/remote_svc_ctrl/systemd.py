@@ -18,7 +18,7 @@ def run_systemctl(command: str, service: str, host: str | None = None) -> str:
     host : str or None
         SSH target as user@host, or None for localhost.
     """
-    cmd = ["systemctl"]
+    cmd = ["systemctl", "--no-pager", "--no-ask-password"]
     if host:
         cmd += ["--host", host]
     cmd += [command, service]
@@ -29,6 +29,16 @@ def run_systemctl(command: str, service: str, host: str | None = None) -> str:
         timeout=10,
     )
     return result.stdout
+
+
+@dataclass
+class MemoryUsage:
+    """Parsed memory values in bytes."""
+
+    current: float
+    peak: float
+    swap: float
+    swap_peak: float
 
 
 @dataclass
@@ -45,9 +55,83 @@ class ServiceStatus:
     since: datetime | None
     main_pid: int | None
     tasks: int | None
-    memory: str
-    cpu: str
+    memory: MemoryUsage
+    cpu: float
     cgroup: str
+    logs: list[str]
+
+
+def _parse_memory_value(text: str) -> float:
+    """Parse a memory string like '176K' or '22.7M' into bytes."""
+    match = re.match(r"([\d.]+)\s*([KMGT]?)", text.strip())
+    if not match:
+        return 0.0
+    value = float(match.group(1))
+    unit = match.group(2)
+    multipliers = {"K": 1024, "M": 1024**2, "G": 1024**3, "T": 1024**4}
+    return value * multipliers.get(unit, 1)
+
+
+def _parse_cpu_time(raw: str) -> float:
+    """Parse CPU time like '5.227s', '1min 5.227s', '1h 2min 3.456s' to seconds."""
+    total = 0.0
+    for match in re.finditer(r"([\d.]+)\s*(h|min|ms|s)", raw):
+        value = float(match.group(1))
+        unit = match.group(2)
+        if unit == "h":
+            total += value * 3600
+        elif unit == "min":
+            total += value * 60
+        elif unit == "s":
+            total += value
+        elif unit == "ms":
+            total += value / 1000
+    return total
+
+
+def _parse_memory_field(raw: str) -> MemoryUsage:
+    """Parse Memory field like '176K (peak: 22.7M, swap: 1.2M, swap peak: 1.2M)'."""
+    current = 0.0
+    peak = 0.0
+    swap = 0.0
+    swap_peak = 0.0
+
+    # Current value is the first token before any parentheses
+    current_match = re.match(r"([\d.]+\s*[KMGT]?)", raw)
+    if current_match:
+        current = _parse_memory_value(current_match.group(1))
+
+    # Parenthesized fields
+    peak_match = re.search(r"peak:\s*([\d.]+\s*[KMGT]?)", raw)
+    if peak_match:
+        peak = _parse_memory_value(peak_match.group(1))
+
+    swap_peak_match = re.search(r"swap peak:\s*([\d.]+\s*[KMGT]?)", raw)
+    if swap_peak_match:
+        swap_peak = _parse_memory_value(swap_peak_match.group(1))
+
+    # swap: (but not "swap peak:")
+    swap_match = re.search(r"(?<!peak)swap:\s*([\d.]+\s*[KMGT]?)", raw)
+    if swap_match:
+        swap = _parse_memory_value(swap_match.group(1))
+
+    return MemoryUsage(current=current, peak=peak, swap=swap, swap_peak=swap_peak)
+
+
+def _parse_log_lines(lines: list[str]) -> list[str]:
+    """Extract log lines from status output, keeping only timestamp + message."""
+    logs = []
+    # Log lines start with a date like "Jun 10 09:21:40 hostname process[pid]: message"
+    log_pattern = re.compile(
+        r"(\w{3}\s+\d+\s+\d{2}:\d{2}:\d{2})\s+\S+\s+\S+?\[\d+\]:\s+(.*)"
+    )
+    for line in lines:
+        match = log_pattern.match(line.strip())
+        if match:
+            timestamp = match.group(1)
+            message = match.group(2)
+            logs.append(f"{timestamp} {message}")
+    return logs
 
 
 def parse_systemctl_status(output: str) -> ServiceStatus:
@@ -122,9 +206,11 @@ def parse_systemctl_status(output: str) -> ServiceStatus:
     if tasks_match:
         tasks = int(tasks_match.group(1))
 
-    memory = _get_field("Memory")
-    cpu = _get_field("CPU")
+    memory = _parse_memory_field(_get_field("Memory"))
+    cpu_raw = _get_field("CPU")
+    cpu = _parse_cpu_time(cpu_raw)
     cgroup = _get_field("CGroup")
+    logs = _parse_log_lines(lines)
 
     return ServiceStatus(
         unit=unit,
@@ -140,4 +226,5 @@ def parse_systemctl_status(output: str) -> ServiceStatus:
         memory=memory,
         cpu=cpu,
         cgroup=cgroup,
+        logs=logs,
     )

@@ -1,23 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--Saved on 2026-06-09 15:53:29 by jwlodek-->
+<!--Saved on 2026-06-11 10:42:10 by jwlodek-->
 <display version="2.0.0">
   <name>Service Control</name>
   <macros>
-    <PREFIX>$(PREFIX)</PREFIX>
+    <PREFIX>DEV:SVC</PREFIX>
   </macros>
-  <width>500</width>
+  <width>1200</width>
   <height>550</height>
   <widget type="label" version="2.0.0">
     <name>Title</name>
     <text>Service Control - $(PREFIX)</text>
     <x>5</x>
     <y>5</y>
-    <width>490</width>
+    <width>1185</width>
     <height>30</height>
     <font>
       <font name="Header 1" family="Liberation Sans" style="BOLD" size="22.0">
       </font>
     </font>
+    <foreground_color>
+      <color name="Header_ForeGround" red="255" green="255" blue="255">
+      </color>
+    </foreground_color>
+    <background_color>
+      <color red="0" green="149" blue="255">
+      </color>
+    </background_color>
+    <transparent>false</transparent>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
   </widget>
   <widget type="label" version="2.0.0">
     <name>Unit Label</name>
@@ -34,6 +45,8 @@
     <y>45</y>
     <width>360</width>
     <height>25</height>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
   </widget>
   <widget type="label" version="2.0.0">
     <name>Desc Label</name>
@@ -50,29 +63,14 @@
     <y>75</y>
     <width>360</width>
     <height>25</height>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
   </widget>
   <widget type="label" version="2.0.0">
     <name>LoadState Label</name>
-    <text>Load State</text>
-    <x>5</x>
-    <y>105</y>
-    <width>120</width>
-    <height>25</height>
-  </widget>
-  <widget type="textupdate" version="2.0.0">
-    <name>LoadState</name>
-    <pv_name>$(PREFIX):LoadState</pv_name>
-    <x>130</x>
-    <y>105</y>
-    <width>360</width>
-    <height>25</height>
-    <border_alarm_sensitive>true</border_alarm_sensitive>
-  </widget>
-  <widget type="label" version="2.0.0">
-    <name>UnitFile Label</name>
     <text>Unit File</text>
     <x>5</x>
-    <y>135</y>
+    <y>105</y>
     <width>120</width>
     <height>25</height>
   </widget>
@@ -80,9 +78,46 @@
     <name>UnitFile</name>
     <pv_name>$(PREFIX):UnitFile</pv_name>
     <x>130</x>
+    <y>105</y>
+    <width>360</width>
+    <height>25</height>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>Load State Label</name>
+    <text>Load State</text>
+    <x>5</x>
+    <y>135</y>
+    <width>120</width>
+    <height>25</height>
+  </widget>
+  <widget type="textupdate" version="2.0.0">
+    <name>LoadState</name>
+    <pv_name>$(PREFIX):LoadState</pv_name>
+    <x>130</x>
     <y>135</y>
     <width>360</width>
     <height>25</height>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
+    <rules>
+      <rule name="TextColor" prop_id="foreground_color" out_exp="false">
+        <exp bool_exp="pv0==0">
+          <value>
+            <color red="0" green="128" blue="0">
+            </color>
+          </value>
+        </exp>
+        <exp bool_exp="pv0!=0">
+          <value>
+            <color red="255" green="0" blue="0">
+            </color>
+          </value>
+        </exp>
+        <pv_name>$(PREFIX):LoadState</pv_name>
+      </rule>
+    </rules>
   </widget>
   <widget type="label" version="2.0.0">
     <name>Enabled Label</name>
@@ -99,6 +134,25 @@
     <y>165</y>
     <width>360</width>
     <height>25</height>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
+    <rules>
+      <rule name="TextColor" prop_id="foreground_color" out_exp="false">
+        <exp bool_exp="pv0==0">
+          <value>
+            <color red="0" green="128" blue="0">
+            </color>
+          </value>
+        </exp>
+        <exp bool_exp="pv0==1">
+          <value>
+            <color red="204" green="51" blue="51">
+            </color>
+          </value>
+        </exp>
+        <pv_name>$(PREFIX):Enabled</pv_name>
+      </rule>
+    </rules>
   </widget>
   <widget type="label" version="2.0.0">
     <name>ActiveState Label</name>
@@ -115,7 +169,25 @@
     <y>195</y>
     <width>360</width>
     <height>25</height>
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
+    <rules>
+      <rule name="TextColor" prop_id="foreground_color" out_exp="true">
+        <exp bool_exp="">
+          <expression>"active" green</expression>
+        </exp>
+        <exp bool_exp="">
+          <expression>"inactive" gray</expression>
+        </exp>
+        <exp bool_exp="">
+          <expression>"failed" red</expression>
+        </exp>
+        <exp bool_exp="">
+          <expression>"transitioning" orange</expression>
+        </exp>
+        <pv_name>$(PREFIX):ActiveState</pv_name>
+      </rule>
+    </rules>
   </widget>
   <widget type="label" version="2.0.0">
     <name>SubState Label</name>
@@ -132,7 +204,25 @@
     <y>225</y>
     <width>360</width>
     <height>25</height>
-    <border_alarm_sensitive>true</border_alarm_sensitive>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
+    <rules>
+      <rule name="TextColor" prop_id="foreground_color" out_exp="true">
+        <exp bool_exp="">
+          <expression>"running" green</expression>
+        </exp>
+        <exp bool_exp="">
+          <expression>"failed" red</expression>
+        </exp>
+        <exp bool_exp="">
+          <expression>"dead/exited" gray</expression>
+        </exp>
+        <exp bool_exp="">
+          <expression>"transitioning" orange</expression>
+        </exp>
+        <pv_name>$(PREFIX):SubState</pv_name>
+      </rule>
+    </rules>
   </widget>
   <widget type="label" version="2.0.0">
     <name>Since Label</name>
@@ -149,6 +239,8 @@
     <y>255</y>
     <width>360</width>
     <height>25</height>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
   </widget>
   <widget type="label" version="2.0.0">
     <name>MainPID Label</name>
@@ -165,6 +257,8 @@
     <y>285</y>
     <width>360</width>
     <height>25</height>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
   </widget>
   <widget type="label" version="2.0.0">
     <name>Tasks Label</name>
@@ -181,6 +275,8 @@
     <y>315</y>
     <width>360</width>
     <height>25</height>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
   </widget>
   <widget type="label" version="2.0.0">
     <name>Memory Label</name>
@@ -191,18 +287,74 @@
     <height>25</height>
   </widget>
   <widget type="textupdate" version="2.0.0">
-    <name>Memory</name>
-    <pv_name>$(PREFIX):Memory</pv_name>
+    <name>Mem</name>
+    <pv_name>$(PREFIX):Mem</pv_name>
     <x>130</x>
     <y>345</y>
-    <width>360</width>
+    <width>85</width>
     <height>25</height>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>MemPeak Label</name>
+    <text>Peak</text>
+    <x>220</x>
+    <y>345</y>
+    <width>40</width>
+    <height>25</height>
+  </widget>
+  <widget type="textupdate" version="2.0.0">
+    <name>MemPeak</name>
+    <pv_name>$(PREFIX):MemPeak</pv_name>
+    <x>265</x>
+    <y>345</y>
+    <width>85</width>
+    <height>25</height>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>Swap Label</name>
+    <text>Swap</text>
+    <x>5</x>
+    <y>375</y>
+    <width>120</width>
+    <height>25</height>
+  </widget>
+  <widget type="textupdate" version="2.0.0">
+    <name>MemSwap</name>
+    <pv_name>$(PREFIX):MemSwap</pv_name>
+    <x>130</x>
+    <y>375</y>
+    <width>85</width>
+    <height>25</height>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>SwapPeak Label</name>
+    <text>Peak</text>
+    <x>220</x>
+    <y>375</y>
+    <width>40</width>
+    <height>25</height>
+  </widget>
+  <widget type="textupdate" version="2.0.0">
+    <name>MemSwapPeak</name>
+    <pv_name>$(PREFIX):MemSwapPeak</pv_name>
+    <x>265</x>
+    <y>375</y>
+    <width>85</width>
+    <height>25</height>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
   </widget>
   <widget type="label" version="2.0.0">
     <name>CPU Label</name>
     <text>CPU</text>
     <x>5</x>
-    <y>375</y>
+    <y>405</y>
     <width>120</width>
     <height>25</height>
   </widget>
@@ -210,15 +362,17 @@
     <name>CPU</name>
     <pv_name>$(PREFIX):CPU</pv_name>
     <x>130</x>
-    <y>375</y>
+    <y>405</y>
     <width>360</width>
     <height>25</height>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
   </widget>
   <widget type="label" version="2.0.0">
     <name>CGroup Label</name>
     <text>CGroup</text>
     <x>5</x>
-    <y>405</y>
+    <y>435</y>
     <width>120</width>
     <height>25</height>
   </widget>
@@ -226,15 +380,18 @@
     <name>CGroup</name>
     <pv_name>$(PREFIX):CGroup</pv_name>
     <x>130</x>
-    <y>405</y>
+    <y>435</y>
     <width>360</width>
     <height>25</height>
+    <format>6</format>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
   </widget>
   <widget type="label" version="2.0.0">
     <name>Controls Label</name>
     <text>Controls</text>
     <x>5</x>
-    <y>445</y>
+    <y>475</y>
     <width>490</width>
     <height>25</height>
     <font>
@@ -253,7 +410,7 @@
     </actions>
     <text>Start</text>
     <x>5</x>
-    <y>480</y>
+    <y>510</y>
     <width>150</width>
     <height>35</height>
     <foreground_color>
@@ -277,7 +434,7 @@
     </actions>
     <text>Stop</text>
     <x>170</x>
-    <y>480</y>
+    <y>510</y>
     <width>150</width>
     <height>35</height>
     <foreground_color>
@@ -302,10 +459,31 @@
     </actions>
     <text>Restart</text>
     <x>335</x>
-    <y>480</y>
+    <y>510</y>
     <width>150</width>
     <height>35</height>
     <tooltip>$(actions)</tooltip>
     <show_confirm_dialog>true</show_confirm_dialog>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>Logs Label</name>
+    <text>Logs</text>
+    <x>510</x>
+    <y>45</y>
+    <width>490</width>
+    <height>25</height>
+    <font>
+      <font name="Header 2" family="Liberation Sans" style="BOLD" size="18.0">
+      </font>
+    </font>
+  </widget>
+  <widget type="textupdate" version="2.0.0">
+    <name>Logs</name>
+    <pv_name>$(PREFIX):Logs</pv_name>
+    <x>510</x>
+    <y>75</y>
+    <width>680</width>
+    <height>470</height>
+    <format>6</format>
   </widget>
 </display>

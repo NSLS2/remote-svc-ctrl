@@ -2,12 +2,17 @@
 
 import argparse
 import asyncio
+import logging
+from datetime import datetime
 from enum import IntEnum
 
+from epicsdbbuilder import SetSimpleRecordNames
 from softioc import builder, softioc
 from softioc.asyncio_dispatcher import AsyncioDispatcher
 
 from .systemd import parse_systemctl_status, run_systemctl
+
+log = logging.getLogger(__name__)
 
 
 class Severity:
@@ -119,7 +124,7 @@ _SV_PREFIXES = (
 )
 
 
-def _mbbi_kwargs(enum_cls: type[_StateEnum]) -> dict[str, str]:
+def _mbbi_kwargs(enum_cls: type) -> dict[str, str]:
     """Build severity keyword args for builder.mbbIn from an enum class."""
     kwargs = {}
     for member in enum_cls:
@@ -129,7 +134,7 @@ def _mbbi_kwargs(enum_cls: type[_StateEnum]) -> dict[str, str]:
     return kwargs
 
 
-def _mbbi_labels(enum_cls: type[_StateEnum]) -> tuple[str, ...]:
+def _mbbi_labels(enum_cls: type) -> tuple[str, ...]:
     """Return the ordered labels for an mbbi enum."""
     return tuple(m.label for m in enum_cls)
 
@@ -140,6 +145,46 @@ def _state_index(enum_cls: type[_StateEnum], value: str) -> int:
         if member.label == value:
             return member.value
     return 0
+
+
+def _format_memory(value_bytes: float) -> tuple[float, str]:
+    """Convert bytes to a display value and EGU (KB, MB, or GB)."""
+    if value_bytes >= 1024**3:
+        return value_bytes / 1024**3, "GB"
+    if value_bytes < 1024**2:
+        return value_bytes / 1024, "KB"
+    return value_bytes / 1024**2, "MB"
+
+
+def _format_cpu_time(seconds: float) -> tuple[float, str]:
+    """Convert CPU seconds to a display value and EGU (ms, s, min, or h)."""
+    if seconds >= 3600:
+        return seconds / 3600, "h"
+    if seconds >= 60:
+        return seconds / 60, "min"
+    if seconds < 1:
+        return seconds * 1000, "ms"
+    return seconds, "s"
+
+
+def _format_duration(since: datetime | None) -> str:
+    """Format elapsed time since a datetime as 'Xd Xh Xm Xs'."""
+    if since is None:
+        return ""
+    delta = datetime.now() - since
+    total_seconds = int(delta.total_seconds())
+    if total_seconds < 0:
+        return ""
+    days, remainder = divmod(total_seconds, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if days:
+        return f"{days}d {hours}h {minutes}m {seconds}s"
+    if hours:
+        return f"{hours}h {minutes}m {seconds}s"
+    if minutes:
+        return f"{minutes}m {seconds}s"
+    return f"{seconds}s"
 
 
 def create_ioc(prefix: str, service: str, host: str | None = None):
@@ -154,7 +199,7 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
     host : str or None
         SSH target as user@host, or None for localhost.
     """
-    builder.SetDeviceName(prefix)
+    SetSimpleRecordNames(prefix=prefix, separator="")
 
     # --- Status PVs (read-only) ---
     pv_unit = builder.stringIn("Unit", initial_value="")
@@ -174,10 +219,14 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
     )
     pv_since = builder.stringIn("Since", initial_value="")
     pv_main_pid = builder.longIn("MainPID", initial_value=0)
-    pv_tasks = builder.longIn("Tasks", initial_value=0)
-    pv_memory = builder.stringIn("Memory", initial_value="")
-    pv_cpu = builder.stringIn("CPU", initial_value="")
-    pv_cgroup = builder.stringIn("CGroup", initial_value="")
+    pv_tasks = builder.aIn("Tasks", initial_value=0, PREC=0)
+    pv_mem_current = builder.aIn("Mem", initial_value=0, EGU="MB", PREC=1)
+    pv_mem_peak = builder.aIn("MemPeak", initial_value=0, EGU="MB", PREC=1)
+    pv_mem_swap = builder.aIn("MemSwap", initial_value=0, EGU="MB", PREC=1)
+    pv_mem_swap_peak = builder.aIn("MemSwapPeak", initial_value=0, EGU="MB", PREC=1)
+    pv_cpu = builder.aIn("CPU", initial_value=0, EGU="s", PREC=3)
+    pv_cgroup = builder.longStringIn("CGroup", length=256, initial_value="")
+    pv_logs = builder.longStringIn("Logs", length=4096, initial_value="")
 
     # --- Command PVs (write from CA client triggers action) ---
     def _on_start(value):
@@ -202,6 +251,15 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
     softioc.iocInit(dispatcher)
 
     # --- Polling task ---
+    egu_cache: dict[str, str] = {}
+
+    def _set_egu(pv, egu: str):
+        """Update EGU field only when it changes, via direct memory write."""
+        if egu_cache.get(pv._name) != egu:
+            log.info("Updating EGU for %s: %s -> %s", pv._name, egu_cache.get(pv._name, ""), egu)
+            pv._record.EGU = egu
+            egu_cache[pv._name] = egu
+
     async def _poll():
         while True:
             try:
@@ -218,12 +276,25 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
             pv_enabled.set(_state_index(EnabledState, status.enabled))
             pv_active_state.set(_state_index(ActiveState, status.active_state))
             pv_sub_state.set(_state_index(SubState, status.sub_state))
-            pv_since.set(status.since.isoformat() if status.since else "")
+            pv_since.set(_format_duration(status.since))
             pv_main_pid.set(status.main_pid or 0)
             pv_tasks.set(status.tasks or 0)
-            pv_memory.set(status.memory)
-            pv_cpu.set(status.cpu)
+
+            for pv, value_bytes in (
+                (pv_mem_current, status.memory.current),
+                (pv_mem_peak, status.memory.peak),
+                (pv_mem_swap, status.memory.swap),
+                (pv_mem_swap_peak, status.memory.swap_peak),
+            ):
+                display_val, egu = _format_memory(value_bytes)
+                pv.set(display_val)
+                _set_egu(pv, egu)
+
+            cpu_val, cpu_egu = _format_cpu_time(status.cpu)
+            pv_cpu.set(cpu_val)
+            _set_egu(pv_cpu, cpu_egu)
             pv_cgroup.set(status.cgroup)
+            pv_logs.set("\n".join(status.logs))
 
             await asyncio.sleep(1)
 
