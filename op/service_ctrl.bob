@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--Saved on 2026-06-11 10:59:12 by jwlodek-->
+<!--Saved on 2026-06-11 15:11:24 by jwlodek-->
 <display version="2.0.0">
   <name>Service Control</name>
   <macros>
@@ -176,18 +176,24 @@
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
       <rules>
-        <rule name="TextColor" prop_id="foreground_color" out_exp="true">
-          <exp bool_exp="">
-            <expression>"active" green</expression>
+        <rule name="TextColor" prop_id="foreground_color" out_exp="false">
+          <exp bool_exp="pv0==0">
+            <value>
+              <color red="0" green="128" blue="0">
+              </color>
+            </value>
           </exp>
-          <exp bool_exp="">
-            <expression>"inactive" gray</expression>
+          <exp bool_exp="pv0==1 || pv0==4">
+            <value>
+              <color red="255" green="255" blue="0">
+              </color>
+            </value>
           </exp>
-          <exp bool_exp="">
-            <expression>"failed" red</expression>
-          </exp>
-          <exp bool_exp="">
-            <expression>"transitioning" orange</expression>
+          <exp bool_exp="pv0 != 0 &amp;&amp; pv0 != 1 &amp;&amp; pv0 != 4">
+            <value>
+              <color red="255" green="0" blue="0">
+              </color>
+            </value>
           </exp>
           <pv_name>$(PREFIX):ActiveState</pv_name>
         </rule>
@@ -210,18 +216,24 @@
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
       <rules>
-        <rule name="TextColor" prop_id="foreground_color" out_exp="true">
-          <exp bool_exp="">
-            <expression>"running" green</expression>
+        <rule name="TextColor" prop_id="foreground_color" out_exp="false">
+          <exp bool_exp="pv0==0">
+            <value>
+              <color red="0" green="128" blue="0">
+              </color>
+            </value>
           </exp>
-          <exp bool_exp="">
-            <expression>"failed" red</expression>
+          <exp bool_exp="pv0&gt;0 &amp;&amp; pv0&lt;4">
+            <value>
+              <color red="255" green="0" blue="0">
+              </color>
+            </value>
           </exp>
-          <exp bool_exp="">
-            <expression>"dead/exited" gray</expression>
-          </exp>
-          <exp bool_exp="">
-            <expression>"transitioning" orange</expression>
+          <exp bool_exp="pv0&gt;4">
+            <value>
+              <color red="255" green="255" blue="0">
+              </color>
+            </value>
           </exp>
           <pv_name>$(PREFIX):SubState</pv_name>
         </rule>

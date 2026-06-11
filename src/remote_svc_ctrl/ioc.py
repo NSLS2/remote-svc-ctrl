@@ -3,7 +3,6 @@
 import argparse
 import asyncio
 import logging
-import traceback
 from datetime import datetime
 from enum import IntEnum
 
@@ -236,30 +235,39 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
         pv_status.set(f"[{ts}] {msg}")
 
     # --- Command PVs (write from CA client triggers action) ---
+    def _is_active() -> bool:
+        return last_states.get("ActiveState") == ActiveState.ACTIVE
+
     def _on_start(value):
         if value:
+            if _is_active():
+                _status_msg("Service is already running")
+                return
             try:
                 run_systemctl("start", service, host)
-            except Exception:
-                _status_msg(f"Start failed: {traceback.format_exc().splitlines()[-1]}")
+            except Exception as e:
+                _status_msg(f"Start failed: {e}")
 
     def _on_stop(value):
         if value:
+            if not _is_active():
+                _status_msg("Service is already stopped")
+                return
             try:
                 run_systemctl("stop", service, host)
-            except Exception:
-                _status_msg(f"Stop failed: {traceback.format_exc().splitlines()[-1]}")
+            except Exception as e:
+                _status_msg(f"Stop failed: {e}")
 
     def _on_restart(value):
         if value:
             try:
                 run_systemctl("restart", service, host)
-            except Exception:
-                _status_msg(f"Restart failed: {traceback.format_exc().splitlines()[-1]}")
+            except Exception as e:
+                _status_msg(f"Restart failed: {e}")
 
-    builder.boolOut("Start", on_update=_on_start, initial_value=False)
-    builder.boolOut("Stop", on_update=_on_stop, initial_value=False)
-    builder.boolOut("Restart", on_update=_on_restart, initial_value=False)
+    builder.boolOut("Start", on_update=_on_start, initial_value=False, always_update=True)
+    builder.boolOut("Stop", on_update=_on_stop, initial_value=False, always_update=True)
+    builder.boolOut("Restart", on_update=_on_restart, initial_value=False, always_update=True)
 
     # --- Build and start IOC ---
     dispatcher = AsyncioDispatcher()

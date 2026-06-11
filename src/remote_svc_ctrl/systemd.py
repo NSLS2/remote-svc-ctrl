@@ -28,6 +28,10 @@ def run_systemctl(command: str, service: str, host: str | None = None) -> str:
         text=True,
         timeout=10,
     )
+    if result.returncode not in (0, 3):
+        # returncode 3 = unit not active (normal for "status" on stopped services)
+        msg = result.stderr.strip() or result.stdout.strip() or f"Exit code {result.returncode}"
+        raise RuntimeError(msg)
     return result.stdout
 
 
