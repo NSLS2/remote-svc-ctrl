@@ -12,6 +12,8 @@ from softioc.asyncio_dispatcher import AsyncioDispatcher
 
 from .systemd import parse_systemctl_status, run_systemctl
 
+from ._version import __version__  # noqa: F401
+
 log = logging.getLogger(__name__)
 
 
@@ -374,8 +376,8 @@ def main():
     parser.add_argument(
         "--host",
         default=None,
-        help="SSH target as user@host (default: localhost)",
     )
+    parser.add_argument("-v", "--version", action="version", version=f"remote-svc-ctrl {__version__}")
     args = parser.parse_args()
 
     create_ioc(args.prefix, args.service, args.host)
