@@ -11,32 +11,6 @@ This can be particularly useful for managing acquisition/control services on ven
 - Monitor over SSH for services running on remote hosts
 - Phoebus operator screen included
 
-## PVs
-
-Given a prefix like `XF:28ID-CT{Svc:MyApp}`, the IOC exposes:
-
-| PV Suffix | Type | Description |
-|-----------|------|-------------|
-| `Unit` | stringIn | Systemd unit name |
-| `Desc` | stringIn | Unit description |
-| `LoadState` | mbbIn | Load state (loaded, not-found, masked, error, bad-setting) |
-| `UnitFile` | stringIn | Path to the unit file |
-| `Enabled` | mbbIn | Enable state (enabled, disabled, static, masked, ...) |
-| `ActiveState` | mbbIn | Active state (active, reloading, inactive, failed, ...) |
-| `SubState` | mbbIn | Sub-state (running, dead, exited, failed, ...) |
-| `Since` | stringIn | Timestamp when the service entered its current state |
-| `MainPID` | longIn | Main process ID |
-| `Tasks` | longIn | Number of tasks |
-| `Memory` | stringIn | Memory usage |
-| `CPU` | stringIn | CPU usage |
-| `CGroup` | stringIn | Control group |
-| `Start` | boolOut | Write `1` to start the service |
-| `Stop` | boolOut | Write `1` to stop the service |
-| `Restart` | boolOut | Write `1` to restart the service |
-
-The `LoadState`, `ActiveState`, and `SubState` PVs enter a MAJOR alarm when
-the service is in a failure state (e.g. `failed`, `not-found`, `error`).
-
 ## Usage
 
 ```bash
@@ -50,6 +24,14 @@ remote-svc-ctrl "XF:28ID-CT{Svc:MyApp}" my-app.service --host user@server
 ## Operator Screen
 
 A Phoebus `.bob` screen is provided in [`op/service_ctrl.bob`](op/service_ctrl.bob). Open it with the macro `PREFIX` set to your IOC's PV prefix.
+
+![Operator Screen](docs/assets/screenshot.png)
+
+## Documentation
+
+- [PV Reference](docs/pvs.md) — full list of exposed PVs and their behavior
+- [Polkit Configuration](docs/polkit.md) — allow non-root service control without a password
+- [SSH Key Setup](docs/ssh-setup.md) — configure passwordless SSH for remote host management
 
 ## Development
 
