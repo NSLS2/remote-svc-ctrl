@@ -1,15 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--Saved on 2026-06-11 15:17:14 by jwlodek-->
+<!--Saved on 2026-06-11 15:57:08 by jwlodek-->
 <display version="2.0.0">
-  <name>Service Control</name>
-  <macros>
-    <PREFIX>DEV:SVC:</PREFIX>
-  </macros>
+  <name>$(SVC) on $(HOST)</name>
   <width>1200</width>
   <height>650</height>
   <widget type="label" version="2.0.0">
     <name>Title</name>
-    <text>Service Control - $(PREFIX)</text>
+    <text>$(SVC) on $(HOST) Status &amp; Control - $(PREFIX)</text>
     <x>5</x>
     <y>5</y>
     <width>1185</width>
