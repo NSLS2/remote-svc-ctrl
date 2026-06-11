@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import logging
+import traceback
 from datetime import datetime
 from enum import IntEnum
 
@@ -227,19 +228,34 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
     pv_cpu = builder.aIn("CPU", initial_value=0, EGU="s", PREC=3)
     pv_cgroup = builder.longStringIn("CGroup", length=256, initial_value="")
     pv_logs = builder.longStringIn("Logs", length=4096, initial_value="")
+    pv_status = builder.longStringIn("StatusMessage", length=256, initial_value="")
+
+    def _status_msg(msg: str):
+        """Set status PV with timestamp prefix."""
+        ts = datetime.now().strftime("%H:%M:%S")
+        pv_status.set(f"[{ts}] {msg}")
 
     # --- Command PVs (write from CA client triggers action) ---
     def _on_start(value):
         if value:
-            run_systemctl("start", service, host)
+            try:
+                run_systemctl("start", service, host)
+            except Exception:
+                _status_msg(f"Start failed: {traceback.format_exc().splitlines()[-1]}")
 
     def _on_stop(value):
         if value:
-            run_systemctl("stop", service, host)
+            try:
+                run_systemctl("stop", service, host)
+            except Exception:
+                _status_msg(f"Stop failed: {traceback.format_exc().splitlines()[-1]}")
 
     def _on_restart(value):
         if value:
-            run_systemctl("restart", service, host)
+            try:
+                run_systemctl("restart", service, host)
+            except Exception:
+                _status_msg(f"Restart failed: {traceback.format_exc().splitlines()[-1]}")
 
     builder.boolOut("Start", on_update=_on_start, initial_value=False)
     builder.boolOut("Stop", on_update=_on_stop, initial_value=False)
@@ -252,6 +268,7 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
 
     # --- Polling task ---
     egu_cache: dict[str, str] = {}
+    last_states: dict[str, int] = {}
 
     def _set_egu(pv, egu: str):
         """Update EGU field only when it changes, via direct memory write."""
@@ -261,6 +278,7 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
             egu_cache[pv._name] = egu
 
     async def _poll():
+        first_poll = True
         while True:
             try:
                 output = run_systemctl("status", service, host)
@@ -295,6 +313,35 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
             _set_egu(pv_cpu, cpu_egu)
             pv_cgroup.set(status.cgroup)
             pv_logs.set("\n".join(status.logs))
+
+            # Track state changes and update status message
+            current_states = {
+                "ActiveState": _state_index(ActiveState, status.active_state),
+                "SubState": _state_index(SubState, status.sub_state),
+                "LoadState": _state_index(LoadState, status.load_state),
+                "Enabled": _state_index(EnabledState, status.enabled),
+            }
+            if first_poll:
+                _status_msg(
+                    f"{status.active_state}({status.sub_state}) "
+                    f"load={status.load_state} enabled={status.enabled}"
+                )
+                last_states.update(current_states)
+                first_poll = False
+            elif current_states != last_states:
+                changed = [
+                    k for k in current_states
+                    if current_states[k] != last_states.get(k)
+                ]
+                parts = []
+                if "ActiveState" in changed or "SubState" in changed:
+                    parts.append(f"{status.active_state}({status.sub_state})")
+                if "LoadState" in changed:
+                    parts.append(f"load={status.load_state}")
+                if "Enabled" in changed:
+                    parts.append(f"enabled={status.enabled}")
+                _status_msg(" ".join(parts))
+                last_states.update(current_states)
 
             await asyncio.sleep(1)
 
