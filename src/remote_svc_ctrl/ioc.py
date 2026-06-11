@@ -124,7 +124,7 @@ _SV_PREFIXES = (
 )
 
 
-def _mbbi_kwargs(enum_cls: type) -> dict[str, str]:
+def _mbbi_kwargs(enum_cls: type[_StateEnum]) -> dict[str, str]:
     """Build severity keyword args for builder.mbbIn from an enum class."""
     kwargs = {}
     for member in enum_cls:
@@ -134,7 +134,7 @@ def _mbbi_kwargs(enum_cls: type) -> dict[str, str]:
     return kwargs
 
 
-def _mbbi_labels(enum_cls: type) -> tuple[str, ...]:
+def _mbbi_labels(enum_cls: type[_StateEnum]) -> tuple[str, ...]:
     """Return the ordered labels for an mbbi enum."""
     return tuple(m.label for m in enum_cls)
 
@@ -265,9 +265,13 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
             except Exception as e:
                 _status_msg(f"Restart failed: {e}")
 
-    builder.boolOut("Start", on_update=_on_start, initial_value=False, always_update=True)
+    builder.boolOut(
+        "Start", on_update=_on_start, initial_value=False, always_update=True
+    )
     builder.boolOut("Stop", on_update=_on_stop, initial_value=False, always_update=True)
-    builder.boolOut("Restart", on_update=_on_restart, initial_value=False, always_update=True)
+    builder.boolOut(
+        "Restart", on_update=_on_restart, initial_value=False, always_update=True
+    )
 
     # --- Build and start IOC ---
     dispatcher = AsyncioDispatcher()
@@ -281,7 +285,12 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
     def _set_egu(pv, egu: str):
         """Update EGU field only when it changes, via direct memory write."""
         if egu_cache.get(pv._name) != egu:
-            log.info("Updating EGU for %s: %s -> %s", pv._name, egu_cache.get(pv._name, ""), egu)
+            log.info(
+                "Updating EGU for %s: %s -> %s",
+                pv._name,
+                egu_cache.get(pv._name, ""),
+                egu,
+            )
             pv._record.EGU = egu
             egu_cache[pv._name] = egu
 
@@ -338,8 +347,7 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
                 first_poll = False
             elif current_states != last_states:
                 changed = [
-                    k for k in current_states
-                    if current_states[k] != last_states.get(k)
+                    k for k in current_states if current_states[k] != last_states.get(k)
                 ]
                 parts = []
                 if "ActiveState" in changed or "SubState" in changed:

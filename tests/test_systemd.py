@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pytest_mock import MockerFixture
 
-from remote_svc_ctrl.systemd import parse_systemctl_status, run_systemctl
+from remote_svc_ctrl.systemd import MemoryUsage, parse_systemctl_status, run_systemctl
 
 ACTIVE_STATUS_OUTPUT = """\
 ● sshd.service - OpenSSH server daemon
@@ -51,8 +51,10 @@ def test_parse_active_running_service():
     assert status.since == datetime(2026, 5, 8, 6, 40, 50)
     assert status.main_pid == 3470042
     assert status.tasks == 1
-    assert status.memory == "5.1M"
-    assert status.cpu == "23ms"
+    assert status.memory == MemoryUsage(
+        current=5.1 * 1024**2, peak=0.0, swap=0.0, swap_peak=0.0
+    )
+    assert status.cpu == 0.023
     assert status.cgroup == "/system.slice/sshd.service"
 
 
@@ -79,8 +81,8 @@ def test_parse_failed_service():
     assert status.sub_state == "failed"
     assert status.since == datetime(2026, 6, 9, 10, 15, 30)
     assert status.main_pid == 12345
-    assert status.memory == "0B"
-    assert status.cpu == "100ms"
+    assert status.memory == MemoryUsage(current=0.0, peak=0.0, swap=0.0, swap_peak=0.0)
+    assert status.cpu == 0.1
 
 
 def test_parse_empty_output():
@@ -99,11 +101,12 @@ def test_parse_empty_output():
 def test_run_systemctl_local(mocker: MockerFixture):
     mock_run = mocker.patch("remote_svc_ctrl.systemd.subprocess.run")
     mock_run.return_value.stdout = "output"
+    mock_run.return_value.returncode = 0
 
     result = run_systemctl("status", "sshd.service")
 
     mock_run.assert_called_once_with(
-        ["systemctl", "status", "sshd.service"],
+        ["systemctl", "--no-pager", "--no-ask-password", "status", "sshd.service"],
         capture_output=True,
         text=True,
         timeout=10,
@@ -114,11 +117,20 @@ def test_run_systemctl_local(mocker: MockerFixture):
 def test_run_systemctl_remote(mocker: MockerFixture):
     mock_run = mocker.patch("remote_svc_ctrl.systemd.subprocess.run")
     mock_run.return_value.stdout = "output"
+    mock_run.return_value.returncode = 0
 
     result = run_systemctl("restart", "my-app.service", host="user@server")
 
     mock_run.assert_called_once_with(
-        ["systemctl", "--host", "user@server", "restart", "my-app.service"],
+        [
+            "systemctl",
+            "--no-pager",
+            "--no-ask-password",
+            "--host",
+            "user@server",
+            "restart",
+            "my-app.service",
+        ],
         capture_output=True,
         text=True,
         timeout=10,

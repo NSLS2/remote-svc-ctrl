@@ -102,6 +102,7 @@ convention = "numpy"
 # See https://github.com/DiamondLightSource/python-copier-template/issues/154
 # Remove this line to forbid private member access in tests
 "tests/**/*" = ["SLF001", "S101", "D", "PLC2701"]
+"src/remote_svc_ctrl/ioc.py" = ["SLF001"]
 
 [tool.importlinter]
 root_package = "remote_svc_ctrl"

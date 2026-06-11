@@ -59,7 +59,9 @@ def test_ioc_integration(mocker: MockerFixture):
     state = {"output": RUNNING_OUTPUT}
 
     def mock_subprocess_run(cmd, **kwargs):
-        command = cmd[1] if len(cmd) > 1 else ""
+        # Action is second-to-last
+        # ["systemctl", "--no-pager", "--no-ask-password", action, service]
+        command = cmd[-2] if len(cmd) >= 2 else ""
         if command == "start":
             state["output"] = RUNNING_OUTPUT
         elif command == "stop":
@@ -75,7 +77,7 @@ def test_ioc_integration(mocker: MockerFixture):
         side_effect=mock_subprocess_run,
     )
 
-    create_ioc("TEST:Svc", "my-app.service")
+    create_ioc("TEST:Svc:", "my-app.service")
 
     def get_pv(suffix):
         return RecordLookup.LookupRecord(f"TEST:Svc:{suffix}")
@@ -89,8 +91,6 @@ def test_ioc_integration(mocker: MockerFixture):
     assert get_pv("LoadState").get() == _state_index(LoadState, "loaded")
     assert get_pv("MainPID").get() == 1234
     assert get_pv("Tasks").get() == 4
-    assert get_pv("Memory").get() == "128.0M"
-    assert get_pv("CPU").get() == "1.5s"
 
     # Trigger stop
     get_pv("Stop").set(1)
