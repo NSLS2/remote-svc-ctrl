@@ -6,8 +6,8 @@ This can be particularly useful for managing acquisition/control services on ven
 
 ## Features
 
-- Poll `systemctl status` and publish service state as EPICS PVs
-- Start, stop, and restart services via Channel Access
+- Poll `systemctl status` parse its output, and publish relevant information as PVs
+- Start, stop, and restart services via CA/PVA
 - Monitor over SSH for services running on remote hosts
 - Phoebus operator screen included
 
@@ -34,6 +34,8 @@ A Phoebus `.bob` screen is provided in [`op/service_ctrl.bob`](op/service_ctrl.b
 - [SSH Key Setup](docs/ssh-setup.md) — configure passwordless SSH for remote host management
 
 ## Development
+
+The project uses [uv](https://docs.astral.sh/uv/) for dependency management and task running. To set up the development environment, run:
 
 ```bash
 uv sync                             # Install dependencies
