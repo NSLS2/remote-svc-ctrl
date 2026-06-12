@@ -167,11 +167,13 @@ def test_run_systemctl_remote(mocker: MockerFixture):
 
     mock_run.assert_called_once_with(
         [
+            "ssh",
+            "-o",
+            "BatchMode=yes",
+            "user@server",
             "systemctl",
             "--no-pager",
             "--no-ask-password",
-            "--host",
-            "user@server",
             "restart",
             "my-app.service",
         ],

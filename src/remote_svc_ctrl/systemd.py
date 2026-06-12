@@ -20,8 +20,19 @@ def run_systemctl(command: str, service: str, host: str | None = None) -> str:
     """
     cmd = ["systemctl", "--no-pager", "--no-ask-password"]
     if host:
-        cmd += ["--host", host]
-    cmd += [command, service]
+        cmd = [
+            "ssh",
+            "-o",
+            "BatchMode=yes",
+            host,
+            "systemctl",
+            "--no-pager",
+            "--no-ask-password",
+            command,
+            service,
+        ]
+    else:
+        cmd += [command, service]
     result = subprocess.run(
         cmd,
         capture_output=True,
