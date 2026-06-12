@@ -219,6 +219,9 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
         "SubState", *_mbbi_labels(SubState), **_mbbi_kwargs(SubState)
     )
     pv_since = builder.stringIn("Since", initial_value="")
+    pv_duration = builder.aIn("Duration", initial_value=0, EGU="s", PREC=3)
+    pv_result = builder.stringIn("Result", initial_value="")
+    pv_exit_info = builder.stringIn("ExitInfo", initial_value="")
     pv_main_pid = builder.longIn("MainPID", initial_value=0)
     pv_tasks = builder.aIn("Tasks", initial_value=0, PREC=0)
     pv_mem_current = builder.aIn("Mem", initial_value=0, EGU="MB", PREC=1)
@@ -313,6 +316,9 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
             pv_active_state.set(_state_index(ActiveState, status.active_state))
             pv_sub_state.set(_state_index(SubState, status.sub_state))
             pv_since.set(_format_duration(status.since))
+            pv_duration.set(status.duration or 0)
+            pv_result.set(status.result)
+            pv_exit_info.set(status.exit_info)
             pv_main_pid.set(status.main_pid or 0)
             pv_tasks.set(status.tasks or 0)
 
@@ -340,9 +346,13 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
                 "Enabled": _state_index(EnabledState, status.enabled),
             }
             if first_poll:
+                state_str = (
+                    f"{status.active_state}({status.sub_state})"
+                    if status.active_state
+                    else "unknown state"
+                )
                 _status_msg(
-                    f"{status.active_state}({status.sub_state}) "
-                    f"load={status.load_state} enabled={status.enabled}"
+                    f"{state_str} load={status.load_state} enabled={status.enabled}"
                 )
                 last_states.update(current_states)
                 first_poll = False

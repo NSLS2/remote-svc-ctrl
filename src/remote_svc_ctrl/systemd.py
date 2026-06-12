@@ -61,6 +61,9 @@ class ServiceStatus:
     active_state: str
     sub_state: str
     since: datetime | None
+    duration: float | None
+    result: str
+    exit_info: str
     main_pid: int | None
     tasks: int | None
     memory: MemoryUsage
@@ -174,16 +177,25 @@ def parse_systemctl_status(output: str) -> ServiceStatus:
         enabled = loaded_match.group(3)
 
     # Active: active (running) since Fri 2026-05-08 06:40:50 EDT; 1 month 0 days ago
+    # Active: failed (Result: signal) since Mon 2026-06-08 12:00:40 EDT; 4 days ago
     active_state = ""
     sub_state = ""
+    result = ""
     since: datetime | None = None
     active_raw = _get_field("Active")
     active_match = re.match(
-        r"(\w+)\s+\((\w+)\)(?:\s+since\s+(.+?)(?:;.*)?)?$", active_raw
+        r"(\w+)\s+\(([^)]+)\)(?:\s+since\s+(.+?)(?:;.*)?)?$", active_raw
     )
     if active_match:
         active_state = active_match.group(1)
-        sub_state = active_match.group(2)
+        paren_content = active_match.group(2)
+        # Handle "Result: signal" format vs simple sub-state like "running"
+        result_match = re.match(r"Result:\s+(.*)", paren_content)
+        if result_match:
+            result = result_match.group(1)
+            sub_state = active_state  # e.g. "failed"
+        else:
+            sub_state = paren_content
         since_str = active_match.group(3)
         if since_str:
             # Format: "Fri 2026-05-08 06:40:50 EDT"
@@ -193,19 +205,24 @@ def parse_systemctl_status(output: str) -> ServiceStatus:
             )
             if since_parts:
                 since = datetime.strptime(since_parts.group(1), "%Y-%m-%d %H:%M:%S")
-    elif active_raw:
-        # Handle "inactive (dead)" with no since
-        simple_match = re.match(r"(\w+)\s+\((\w+)\)", active_raw)
-        if simple_match:
-            active_state = simple_match.group(1)
-            sub_state = simple_match.group(2)
+
+    # Duration: 2.187s
+    duration: float | None = None
+    duration_raw = _get_field("Duration")
+    if duration_raw:
+        duration = _parse_cpu_time(duration_raw)
 
     # Main PID: 3470042 (sshd)
+    # Main PID: 3185819 (code=killed, signal=SEGV)
     main_pid = None
+    exit_info = ""
     pid_raw = _get_field("Main PID")
     pid_match = re.match(r"(\d+)", pid_raw)
     if pid_match:
         main_pid = int(pid_match.group(1))
+    exit_match = re.search(r"\(code=(\w+),\s*(.+?)\)", pid_raw)
+    if exit_match:
+        exit_info = f"code={exit_match.group(1)}, {exit_match.group(2)}"
 
     # Tasks: 1 (limit: 3355442)
     tasks = None
@@ -229,6 +246,9 @@ def parse_systemctl_status(output: str) -> ServiceStatus:
         active_state=active_state,
         sub_state=sub_state,
         since=since,
+        duration=duration,
+        result=result,
+        exit_info=exit_info,
         main_pid=main_pid,
         tasks=tasks,
         memory=memory,

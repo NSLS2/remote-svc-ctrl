@@ -44,6 +44,16 @@ FAILED_STATUS_OUTPUT = """\
      CGroup: /system.slice/my-app.service
 """
 
+FAILED_SIGNAL_STATUS_OUTPUT = """\
+× xspd.service - Starting X-Spectrum remote service
+     Loaded: loaded (/lib/systemd/system/xspd.service; enabled; preset: enabled)
+     Active: failed (Result: signal) since Mon 2026-06-08 12:00:40 EDT; 4 days ago
+   Duration: 2.187s
+    Process: 3185819 ExecStart=/usr/sbin/xspd (code=killed, signal=SEGV)
+   Main PID: 3185819 (code=killed, signal=SEGV)
+        CPU: 173ms
+"""
+
 
 def test_parse_active_running_service():
     status = parse_systemctl_status(ACTIVE_STATUS_OUTPUT)
@@ -56,6 +66,9 @@ def test_parse_active_running_service():
     assert status.active_state == "active"
     assert status.sub_state == "running"
     assert status.since == datetime(2026, 5, 8, 6, 40, 50)
+    assert status.duration is None
+    assert status.result == ""
+    assert status.exit_info == ""
     assert status.main_pid == 3470042
     assert status.tasks == 1
     assert status.memory == MemoryUsage(
@@ -76,6 +89,9 @@ def test_parse_inactive_dead_service():
     assert status.active_state == "inactive"
     assert status.sub_state == "dead"
     assert status.since is None
+    assert status.duration is None
+    assert status.result == ""
+    assert status.exit_info == ""
     assert status.main_pid is None
     assert status.tasks is None
 
@@ -87,9 +103,27 @@ def test_parse_failed_service():
     assert status.active_state == "failed"
     assert status.sub_state == "failed"
     assert status.since == datetime(2026, 6, 9, 10, 15, 30)
+    assert status.duration is None
+    assert status.result == ""
+    assert status.exit_info == "code=exited, status=1/FAILURE"
     assert status.main_pid == 12345
     assert status.memory == MemoryUsage(current=0.0, peak=0.0, swap=0.0, swap_peak=0.0)
     assert status.cpu == 0.1
+
+
+def test_parse_failed_signal_service():
+    status = parse_systemctl_status(FAILED_SIGNAL_STATUS_OUTPUT)
+
+    assert status.unit == "xspd.service"
+    assert status.description == "Starting X-Spectrum remote service"
+    assert status.active_state == "failed"
+    assert status.sub_state == "failed"
+    assert status.result == "signal"
+    assert status.since == datetime(2026, 6, 8, 12, 0, 40)
+    assert status.duration == 2.187
+    assert status.exit_info == "code=killed, signal=SEGV"
+    assert status.main_pid == 3185819
+    assert status.cpu == 0.173
 
 
 def test_parse_empty_output():
@@ -101,6 +135,9 @@ def test_parse_empty_output():
     assert status.active_state == ""
     assert status.sub_state == ""
     assert status.since is None
+    assert status.duration is None
+    assert status.result == ""
+    assert status.exit_info == ""
     assert status.main_pid is None
     assert status.tasks is None
 
