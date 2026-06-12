@@ -10,9 +10,8 @@ from epicsdbbuilder import SetSimpleRecordNames
 from softioc import builder, softioc
 from softioc.asyncio_dispatcher import AsyncioDispatcher
 
-from .systemd import parse_systemctl_status, run_systemctl
-
 from ._version import __version__  # noqa: F401
+from .systemd import parse_systemctl_status, run_systemctl
 
 log = logging.getLogger(__name__)
 
