@@ -377,7 +377,9 @@ def main():
         "--host",
         default=None,
     )
-    parser.add_argument("-v", "--version", action="version", version=f"remote-svc-ctrl {__version__}")
+    parser.add_argument(
+        "-v", "--version", action="version", version=f"remote-svc-ctrl {__version__}"
+    )
     args = parser.parse_args()
 
     create_ioc(args.prefix, args.service, args.host)
