@@ -203,12 +203,12 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
     SetSimpleRecordNames(prefix=prefix, separator="")
 
     # --- Status PVs (read-only) ---
-    pv_unit = builder.stringIn("Unit", initial_value="")
-    pv_description = builder.stringIn("Desc", initial_value="")
+    pv_unit = builder.longStringIn("Unit", length=256, initial_value="")
+    pv_description = builder.longStringIn("Desc", length=256, initial_value="")
     pv_load_state = builder.mbbIn(
         "LoadState", *_mbbi_labels(LoadState), **_mbbi_kwargs(LoadState)
     )
-    pv_unit_file = builder.stringIn("UnitFile", initial_value="")
+    pv_unit_file = builder.longStringIn("UnitFile", length=256, initial_value="")
     pv_enabled = builder.mbbIn(
         "Enabled", *_mbbi_labels(EnabledState), **_mbbi_kwargs(EnabledState)
     )
