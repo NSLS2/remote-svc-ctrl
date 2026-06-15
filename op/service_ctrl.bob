@@ -516,6 +516,10 @@
       <y>7</y>
       <width>125</width>
       <height>35</height>
+      <font>
+        <font name="Header 3" family="Liberation Sans" style="BOLD" size="16.0">
+        </font>
+      </font>
       <foreground_color>
         <color name="Background" red="240" green="240" blue="240">
         </color>
@@ -540,6 +544,10 @@
       <y>7</y>
       <width>125</width>
       <height>35</height>
+      <font>
+        <font name="Header 3" family="Liberation Sans" style="BOLD" size="16.0">
+        </font>
+      </font>
       <foreground_color>
         <color red="255" green="255" blue="255">
         </color>
@@ -565,6 +573,10 @@
       <y>7</y>
       <width>125</width>
       <height>35</height>
+      <font>
+        <font name="Header 3" family="Liberation Sans" style="BOLD" size="16.0">
+        </font>
+      </font>
       <tooltip>$(actions)</tooltip>
       <show_confirm_dialog>true</show_confirm_dialog>
     </widget>
