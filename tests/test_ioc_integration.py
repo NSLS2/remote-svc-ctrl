@@ -8,7 +8,6 @@ from pytest_mock import MockerFixture
 from remote_svc_ctrl.ioc import (
     ActiveState,
     LoadState,
-    SubState,
     _state_index,
     create_ioc,
 )
@@ -87,7 +86,7 @@ def test_ioc_integration(mocker: MockerFixture):
 
     assert get_pv("Desc").get() == "My Application"
     assert get_pv("ActiveState").get() == _state_index(ActiveState, "active")
-    assert get_pv("SubState").get() == _state_index(SubState, "running")
+    assert get_pv("SubState").get() == "running"
     assert get_pv("LoadState").get() == _state_index(LoadState, "loaded")
     assert get_pv("MainPID").get() == 1234
     assert get_pv("Tasks").get() == 4
@@ -98,7 +97,7 @@ def test_ioc_integration(mocker: MockerFixture):
         lambda: get_pv("ActiveState").get(),
         _state_index(ActiveState, "inactive"),
     )
-    assert get_pv("SubState").get() == _state_index(SubState, "dead")
+    assert get_pv("SubState").get() == "dead"
 
     # Trigger start
     get_pv("Start").set(1)
@@ -106,7 +105,7 @@ def test_ioc_integration(mocker: MockerFixture):
         lambda: get_pv("ActiveState").get(),
         _state_index(ActiveState, "active"),
     )
-    assert get_pv("SubState").get() == _state_index(SubState, "running")
+    assert get_pv("SubState").get() == "running"
     assert get_pv("MainPID").get() == 1234
 
     # Trigger restart from stopped
@@ -127,4 +126,4 @@ def test_ioc_integration(mocker: MockerFixture):
         lambda: get_pv("ActiveState").get(),
         _state_index(ActiveState, "failed"),
     )
-    assert get_pv("SubState").get() == _state_index(SubState, "failed")
+    assert get_pv("SubState").get() == "failed"

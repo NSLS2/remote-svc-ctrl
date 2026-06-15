@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--Saved on 2026-06-11 15:57:08 by jwlodek-->
 <display version="2.0.0">
   <name>$(SVC) on $(HOST)</name>
   <width>1200</width>
   <height>650</height>
   <widget type="label" version="2.0.0">
     <name>Title</name>
-    <text>$(SVC) on $(HOST) Status &amp; Control - $(PREFIX)</text>
+    <text>$(SVC) on $(HOST) - $(PREFIX)</text>
     <x>5</x>
     <y>5</y>
     <width>1185</width>
@@ -44,6 +43,7 @@
       <y>12</y>
       <width>120</width>
       <height>25</height>
+      <vertical_alignment>1</vertical_alignment>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>Unit</name>
@@ -52,6 +52,11 @@
       <y>12</y>
       <width>360</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
+      <format>6</format>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
     </widget>
@@ -61,6 +66,7 @@
       <y>42</y>
       <width>120</width>
       <height>25</height>
+      <vertical_alignment>1</vertical_alignment>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>Desc</name>
@@ -69,6 +75,11 @@
       <y>42</y>
       <width>360</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
+      <format>6</format>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
     </widget>
@@ -78,6 +89,7 @@
       <y>72</y>
       <width>120</width>
       <height>25</height>
+      <vertical_alignment>1</vertical_alignment>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>UnitFile</name>
@@ -86,6 +98,11 @@
       <y>72</y>
       <width>360</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
+      <format>6</format>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
     </widget>
@@ -95,6 +112,7 @@
       <y>102</y>
       <width>120</width>
       <height>25</height>
+      <vertical_alignment>1</vertical_alignment>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>LoadState</name>
@@ -103,6 +121,10 @@
       <y>102</y>
       <width>360</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
       <rules>
@@ -129,6 +151,7 @@
       <y>132</y>
       <width>120</width>
       <height>25</height>
+      <vertical_alignment>1</vertical_alignment>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>Enabled</name>
@@ -137,6 +160,10 @@
       <y>132</y>
       <width>360</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
       <rules>
@@ -163,6 +190,7 @@
       <y>162</y>
       <width>120</width>
       <height>25</height>
+      <vertical_alignment>1</vertical_alignment>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>ActiveState</name>
@@ -171,6 +199,10 @@
       <y>162</y>
       <width>360</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
       <rules>
@@ -203,6 +235,7 @@
       <y>192</y>
       <width>120</width>
       <height>25</height>
+      <vertical_alignment>1</vertical_alignment>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>SubState</name>
@@ -211,25 +244,23 @@
       <y>192</y>
       <width>360</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
       <rules>
         <rule name="TextColor" prop_id="foreground_color" out_exp="false">
-          <exp bool_exp="pv0==0">
+          <exp bool_exp="pvSev0==0">
             <value>
               <color red="0" green="128" blue="0">
               </color>
             </value>
           </exp>
-          <exp bool_exp="pv0&gt;0 &amp;&amp; pv0&lt;4">
+          <exp bool_exp="pvSev0==2">
             <value>
               <color red="255" green="0" blue="0">
-              </color>
-            </value>
-          </exp>
-          <exp bool_exp="pv0&gt;4">
-            <value>
-              <color red="255" green="255" blue="0">
               </color>
             </value>
           </exp>
@@ -243,6 +274,7 @@
       <y>222</y>
       <width>120</width>
       <height>25</height>
+      <vertical_alignment>1</vertical_alignment>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>Since</name>
@@ -251,6 +283,10 @@
       <y>222</y>
       <width>360</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
     </widget>
@@ -260,6 +296,7 @@
       <y>252</y>
       <width>120</width>
       <height>25</height>
+      <vertical_alignment>1</vertical_alignment>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>MainPID</name>
@@ -268,6 +305,10 @@
       <y>252</y>
       <width>360</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
     </widget>
@@ -277,6 +318,7 @@
       <y>282</y>
       <width>120</width>
       <height>25</height>
+      <vertical_alignment>1</vertical_alignment>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>Tasks</name>
@@ -285,6 +327,10 @@
       <y>282</y>
       <width>360</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
     </widget>
@@ -294,6 +340,7 @@
       <y>312</y>
       <width>120</width>
       <height>25</height>
+      <vertical_alignment>1</vertical_alignment>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>Mem</name>
@@ -302,6 +349,10 @@
       <y>312</y>
       <width>85</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
     </widget>
@@ -312,6 +363,7 @@
       <y>312</y>
       <width>40</width>
       <height>25</height>
+      <vertical_alignment>1</vertical_alignment>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>MemPeak</name>
@@ -320,6 +372,10 @@
       <y>312</y>
       <width>85</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
     </widget>
@@ -329,6 +385,7 @@
       <y>342</y>
       <width>120</width>
       <height>25</height>
+      <vertical_alignment>1</vertical_alignment>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>MemSwap</name>
@@ -337,6 +394,10 @@
       <y>342</y>
       <width>85</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
     </widget>
@@ -347,6 +408,7 @@
       <y>342</y>
       <width>40</width>
       <height>25</height>
+      <vertical_alignment>1</vertical_alignment>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>MemSwapPeak</name>
@@ -355,6 +417,10 @@
       <y>342</y>
       <width>85</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
     </widget>
@@ -364,6 +430,7 @@
       <y>372</y>
       <width>120</width>
       <height>25</height>
+      <vertical_alignment>1</vertical_alignment>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>CPU</name>
@@ -372,6 +439,10 @@
       <y>372</y>
       <width>360</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
     </widget>
@@ -381,6 +452,7 @@
       <y>402</y>
       <width>120</width>
       <height>25</height>
+      <vertical_alignment>1</vertical_alignment>
     </widget>
     <widget type="textupdate" version="2.0.0">
       <name>CGroup</name>
@@ -389,6 +461,10 @@
       <y>402</y>
       <width>360</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
       <format>6</format>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
@@ -406,6 +482,10 @@
       <y>462</y>
       <width>452</width>
       <height>25</height>
+      <background_color>
+        <color red="204" green="204" blue="204">
+        </color>
+      </background_color>
       <format>6</format>
       <horizontal_alignment>1</horizontal_alignment>
       <vertical_alignment>1</vertical_alignment>
@@ -426,9 +506,9 @@
       <name>Start</name>
       <actions>
         <action type="write_pv">
+          <description>Start Service</description>
           <pv_name>$(PREFIX)Start</pv_name>
           <value>1</value>
-          <description>Start Service</description>
         </action>
       </actions>
       <text>Start</text>
@@ -437,7 +517,7 @@
       <width>125</width>
       <height>35</height>
       <foreground_color>
-        <color name="Background" red="255" green="255" blue="255">
+        <color name="Background" red="240" green="240" blue="240">
         </color>
       </foreground_color>
       <background_color>
@@ -450,9 +530,9 @@
       <name>Stop</name>
       <actions>
         <action type="write_pv">
+          <description>Stop Service</description>
           <pv_name>$(PREFIX)Stop</pv_name>
           <value>1</value>
-          <description>Stop Service</description>
         </action>
       </actions>
       <text>Stop</text>
@@ -475,9 +555,9 @@
       <name>Restart</name>
       <actions>
         <action type="write_pv">
+          <description>Restart Service</description>
           <pv_name>$(PREFIX)Restart</pv_name>
           <value>1</value>
-          <description>Restart Service</description>
         </action>
       </actions>
       <text>Restart</text>

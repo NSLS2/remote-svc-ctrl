@@ -4,10 +4,10 @@ import argparse
 import asyncio
 import logging
 from datetime import datetime
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 
 from epicsdbbuilder import SetSimpleRecordNames
-from softioc import builder, softioc
+from softioc import alarm, builder, softioc
 from softioc.asyncio_dispatcher import AsyncioDispatcher
 
 from ._version import __version__  # noqa: F401
@@ -77,31 +77,49 @@ class ActiveState(_StateEnum):
         return Severity.NO_ALARM
 
 
-class SubState(_StateEnum):
+class SubState(StrEnum):
     """Systemd unit sub-states."""
 
-    RUNNING = 0
-    DEAD = 1
-    EXITED = 2
-    FAILED = 3
-    AUTO_RESTART = 4
-    START = 5
-    STOP = 6
-    WAITING = 7
-    RELOAD = 8
-    CONDITION = 9
-    START_PRE = 10
-    START_POST = 11
-    STOP_SIGTERM = 12
-    STOP_SIGKILL = 13
-    STOP_POST = 14
-    MOUNTED = 15
+    RUNNING = "running"
+    DEAD = "dead"
+    EXITED = "exited"
+    FAILED = "failed"
+    AUTO_RESTART = "auto-restart"
+    START = "start"
+    STOP = "stop"
+    WAITING = "waiting"
+    RELOAD = "reload"
+    CONDITION = "condition"
+    START_PRE = "start-pre"
+    START_POST = "start-post"
+    STOP_PRE = "stop-pre"
+    STOP_SIGTERM = "stop-sigterm"
+    STOP_SIGKILL = "stop-sigkill"
+    STOP_POST = "stop-post"
+    FINAL_SIGTERM = "final-sigterm"
+    FINAL_SIGKILL = "final-sigkill"
+    FINAL_WATCHDOG = "final-watchdog"
+    CLEANING = "cleaning"
+    MOUNTED = "mounted"
+    MOUNTING = "mounting"
+    UNMOUNTING = "unmounting"
+    PLUGGED = "plugged"
+    LISTENING = "listening"
+    TENTATIVE = "tentative"
+    ACTIVATING = "activating"
+    ACTIVATING_DONE = "activating-done"
+    DEACTIVATING = "deactivating"
+    DEACTIVATING_SIGTERM = "deactivating-sigterm"
+    DEACTIVATING_SIGKILL = "deactivating-sigkill"
 
     @property
-    def severity(self) -> str:
+    def severity(self) -> int:
+        """Return the alarm severity for this sub-state."""
+        from softioc import alarm
+
         if self == self.FAILED:
-            return Severity.MAJOR
-        return Severity.NO_ALARM
+            return alarm.MAJOR_ALARM
+        return alarm.NO_ALARM
 
 
 # Severity field name prefixes for mbbi state indices 0-15
@@ -215,9 +233,7 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
     pv_active_state = builder.mbbIn(
         "ActiveState", *_mbbi_labels(ActiveState), **_mbbi_kwargs(ActiveState)
     )
-    pv_sub_state = builder.mbbIn(
-        "SubState", *_mbbi_labels(SubState), **_mbbi_kwargs(SubState)
-    )
+    pv_sub_state = builder.stringIn("SubState", initial_value="")
     pv_since = builder.stringIn("Since", initial_value="")
     pv_duration = builder.aIn("Duration", initial_value=0, EGU="s", PREC=3)
     pv_result = builder.stringIn("Result", initial_value="")
@@ -314,7 +330,16 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
             pv_unit_file.set(status.unit_file)
             pv_enabled.set(_state_index(EnabledState, status.enabled))
             pv_active_state.set(_state_index(ActiveState, status.active_state))
-            pv_sub_state.set(_state_index(SubState, status.sub_state))
+            try:
+                sub = SubState(status.sub_state)
+            except ValueError:
+                sub = None
+            sub_severity = sub.severity if sub else alarm.NO_ALARM
+            pv_sub_state.set(
+                status.sub_state,
+                severity=sub_severity,
+                alarm=sub_severity,
+            )
             pv_since.set(_format_duration(status.since))
             pv_duration.set(status.duration or 0)
             pv_result.set(status.result)
@@ -341,7 +366,7 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
             # Track state changes and update status message
             current_states = {
                 "ActiveState": _state_index(ActiveState, status.active_state),
-                "SubState": _state_index(SubState, status.sub_state),
+                "SubState": status.sub_state,
                 "LoadState": _state_index(LoadState, status.load_state),
                 "Enabled": _state_index(EnabledState, status.enabled),
             }
