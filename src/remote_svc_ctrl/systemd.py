@@ -18,7 +18,6 @@ def run_systemctl(command: str, service: str, host: str | None = None) -> str:
     host : str or None
         SSH target as user@host, or None for localhost.
     """
-
     cmd = ["systemctl", "--no-pager", "--no-ask-password", command, service]
     if host:
         cmd = [

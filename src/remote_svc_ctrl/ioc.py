@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum, StrEnum
 
@@ -115,11 +116,19 @@ class SubState(StrEnum):
     @property
     def severity(self) -> int:
         """Return the alarm severity for this sub-state."""
-        from softioc import alarm
-
         if self == self.FAILED:
             return alarm.MAJOR_ALARM
         return alarm.NO_ALARM
+
+
+@dataclass
+class _TrackedStates:
+    """Snapshot of states used to detect changes."""
+
+    active: ActiveState = ActiveState.ACTIVE
+    sub: SubState = SubState.RUNNING
+    load: LoadState = LoadState.LOADED
+    enabled: EnabledState = EnabledState.ENABLED
 
 
 # Severity field name prefixes for mbbi state indices 0-15
@@ -256,7 +265,7 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
 
     # --- Command PVs (write from CA client triggers action) ---
     def _is_active() -> bool:
-        return last_states.get("ActiveState") == ActiveState.ACTIVE
+        return last_states is not None and last_states.active == ActiveState.ACTIVE
 
     def _on_start(value):
         if value:
@@ -300,7 +309,7 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
 
     # --- Polling task ---
     egu_cache: dict[str, str] = {}
-    last_states: dict[str, int] = {}
+    last_states: _TrackedStates | None = None
 
     def _set_egu(pv, egu: str):
         """Update EGU field only when it changes, via direct memory write."""
@@ -364,12 +373,19 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
             pv_logs.set("\n".join(status.logs))
 
             # Track state changes and update status message
-            current_states = {
-                "ActiveState": _state_index(ActiveState, status.active_state),
-                "SubState": status.sub_state,
-                "LoadState": _state_index(LoadState, status.load_state),
-                "Enabled": _state_index(EnabledState, status.enabled),
-            }
+            active_enum = ActiveState(_state_index(ActiveState, status.active_state))
+            try:
+                sub_enum = SubState(status.sub_state)
+            except ValueError:
+                sub_enum = SubState.RUNNING
+            load_enum = LoadState(_state_index(LoadState, status.load_state))
+            enabled_enum = EnabledState(_state_index(EnabledState, status.enabled))
+            current_states = _TrackedStates(
+                active=active_enum,
+                sub=sub_enum,
+                load=load_enum,
+                enabled=enabled_enum,
+            )
             if first_poll:
                 state_str = (
                     f"{status.active_state}({status.sub_state})"
@@ -379,21 +395,22 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
                 _status_msg(
                     f"{state_str} load={status.load_state} enabled={status.enabled}"
                 )
-                last_states.update(current_states)
+                nonlocal last_states
+                last_states = current_states
                 first_poll = False
-            elif current_states != last_states:
-                changed = [
-                    k for k in current_states if current_states[k] != last_states.get(k)
-                ]
+            elif current_states != last_states and last_states is not None:
                 parts = []
-                if "ActiveState" in changed or "SubState" in changed:
+                if (
+                    current_states.active != last_states.active
+                    or current_states.sub != last_states.sub
+                ):
                     parts.append(f"{status.active_state}({status.sub_state})")
-                if "LoadState" in changed:
+                if current_states.load != last_states.load:
                     parts.append(f"load={status.load_state}")
-                if "Enabled" in changed:
+                if current_states.enabled != last_states.enabled:
                     parts.append(f"enabled={status.enabled}")
                 _status_msg(" ".join(parts))
-                last_states.update(current_states)
+                last_states = current_states
 
             await asyncio.sleep(1)
 
