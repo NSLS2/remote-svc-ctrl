@@ -18,27 +18,24 @@ def run_systemctl(command: str, service: str, host: str | None = None) -> str:
     host : str or None
         SSH target as user@host, or None for localhost.
     """
-    cmd = ["systemctl", "--no-pager", "--no-ask-password"]
+
+    cmd = ["systemctl", "--no-pager", "--no-ask-password", command, service]
     if host:
         cmd = [
             "ssh",
             "-o",
             "BatchMode=yes",
             host,
-            "systemctl",
-            "--no-pager",
-            "--no-ask-password",
-            command,
-            service,
+            *cmd,
         ]
-    else:
-        cmd += [command, service]
+
     result = subprocess.run(
         cmd,
         capture_output=True,
         text=True,
         timeout=10,
     )
+
     if result.returncode not in (0, 3):
         # returncode 3 = unit not active (normal for "status" on stopped services)
         msg = (
