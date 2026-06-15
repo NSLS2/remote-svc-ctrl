@@ -32,6 +32,7 @@ A Phoebus `.bob` screen is provided in [`op/service_ctrl.bob`](op/service_ctrl.b
 - [PV Reference](docs/pvs.md) — full list of exposed PVs and their behavior
 - [Polkit Configuration](docs/polkit.md) — allow non-root service control without a password
 - [SSH Key Setup](docs/ssh-setup.md) — configure passwordless SSH for remote host management
+- [Journal Log Access](docs/log-access.md) — grant the IOC access to service logs, or configure alternative logging approaches
 
 ## Development
 
