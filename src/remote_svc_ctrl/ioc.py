@@ -5,15 +5,82 @@ import asyncio
 import logging
 from datetime import datetime
 from enum import IntEnum
+from typing import Protocol
 
 from epicsdbbuilder import SetSimpleRecordNames
 from softioc import builder, softioc
 from softioc.asyncio_dispatcher import AsyncioDispatcher
 
 from ._version import __version__  # noqa: F401
-from .systemd import parse_systemctl_status, run_systemctl
+from .initd import (
+    get_process_stats,
+    parse_initd_status,
+    read_initd_description,
+    read_process_logs,
+    run_service,
+)
+from .systemd import ServiceStatus, parse_systemctl_status, run_systemctl
 
 log = logging.getLogger(__name__)
+
+
+class ServiceBackend(Protocol):
+    """Interface for querying and controlling a service backend."""
+
+    def get_status(self) -> ServiceStatus:
+        """Return the current status of the service."""
+        ...
+
+    def run_command(self, command: str) -> None:
+        """Run a control action ("start", "stop", "restart") on the service."""
+        ...
+
+
+class SystemdBackend:
+    """Service backend that uses systemctl to manage a systemd unit."""
+
+    def __init__(self, service: str, host: str | None = None):
+        self.service = service
+        self.host = host
+
+    def get_status(self) -> ServiceStatus:
+        return parse_systemctl_status(run_systemctl("status", self.service, self.host))
+
+    def run_command(self, command: str) -> None:
+        run_systemctl(command, self.service, self.host)
+
+
+class InitdBackend:
+    """Service backend that uses the `service` command to manage init.d."""
+
+    def __init__(self, service: str, host: str | None = None):
+        self.service = service
+        self.host = host
+        self._description: str | None = None
+
+    def get_status(self) -> ServiceStatus:
+        status = parse_initd_status(
+            run_service("status", self.service, self.host), self.service
+        )
+        # The description comes from the init.d script and is static, so cache
+        # it once a non-empty value has been read.
+        if not self._description:
+            self._description = read_initd_description(self.service, self.host)
+        status.description = self._description
+        # A running service reports a PID; use it to gather live process stats.
+        if status.main_pid is not None:
+            memory, cpu, tasks = get_process_stats(status.main_pid, self.host)
+            status.memory = memory
+            status.cpu = cpu
+            status.tasks = tasks
+            # Prefer the process's own stdout/stderr for logs when available.
+            process_logs = read_process_logs(status.main_pid, self.host)
+            if process_logs:
+                status.logs = process_logs
+        return status
+
+    def run_command(self, command: str) -> None:
+        run_service(command, self.service, self.host)
 
 
 class Severity:
@@ -188,18 +255,26 @@ def _format_duration(since: datetime | None) -> str:
     return f"{seconds}s"
 
 
-def create_ioc(prefix: str, service: str, host: str | None = None):
-    """Create and run the IOC for monitoring a systemd service.
+def create_ioc(
+    prefix: str, service: str, host: str | None = None, use_initd: bool = False
+):
+    """Create and run the IOC for monitoring a service.
 
     Parameters
     ----------
     prefix : str
         PV prefix (e.g. "XF:28ID-CT{Svc:MyApp}").
     service : str
-        Systemd service name (e.g. "my-app.service").
+        Service name (e.g. "my-app.service" for systemd, "my-app" for init.d).
     host : str or None
         SSH target as user@host, or None for localhost.
+    use_initd : bool
+        Manage the service via init.d (SysV) instead of systemd.
     """
+    backend: ServiceBackend = (
+        InitdBackend(service, host) if use_initd else SystemdBackend(service, host)
+    )
+
     SetSimpleRecordNames(prefix=prefix, separator="")
 
     # --- Status PVs (read-only) ---
@@ -245,7 +320,7 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
                 _status_msg("Service is already running")
                 return
             try:
-                run_systemctl("start", service, host)
+                backend.run_command("start")
             except Exception as e:
                 _status_msg(f"Start failed: {e}")
 
@@ -255,14 +330,14 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
                 _status_msg("Service is already stopped")
                 return
             try:
-                run_systemctl("stop", service, host)
+                backend.run_command("stop")
             except Exception as e:
                 _status_msg(f"Stop failed: {e}")
 
     def _on_restart(value):
         if value:
             try:
-                run_systemctl("restart", service, host)
+                backend.run_command("restart")
             except Exception as e:
                 _status_msg(f"Restart failed: {e}")
 
@@ -299,8 +374,7 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
         first_poll = True
         while True:
             try:
-                output = run_systemctl("status", service, host)
-                status = parse_systemctl_status(output)
+                status = backend.get_status()
             except Exception:
                 await asyncio.sleep(1)
                 continue
@@ -368,20 +442,28 @@ def create_ioc(prefix: str, service: str, host: str | None = None):
 def main():
     """CLI entrypoint for the remote service control IOC."""
     parser = argparse.ArgumentParser(
-        description="EPICS IOC for monitoring/controlling a systemd service"
+        description="EPICS IOC for monitoring/controlling a system service"
     )
     parser.add_argument("prefix", help="PV prefix (e.g. 'XF:28ID-CT{Svc:MyApp}')")
-    parser.add_argument("service", help="Systemd service name (e.g. 'my-app.service')")
+    parser.add_argument(
+        "service",
+        help="Service name (e.g. 'my-app.service' for systemd, 'my-app' for init.d)",
+    )
     parser.add_argument(
         "--host",
         default=None,
+    )
+    parser.add_argument(
+        "--initd",
+        action="store_true",
+        help="Manage the service via init.d (SysV) instead of systemd",
     )
     parser.add_argument(
         "-v", "--version", action="version", version=f"remote-svc-ctrl {__version__}"
     )
     args = parser.parse_args()
 
-    create_ioc(args.prefix, args.service, args.host)
+    create_ioc(args.prefix, args.service, args.host, use_initd=args.initd)
     softioc.interactive_ioc(globals())
 
 
