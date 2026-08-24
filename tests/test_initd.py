@@ -14,6 +14,7 @@ from remote_svc_ctrl.initd import (
     read_process_logs,
     run_service,
 )
+from remote_svc_ctrl.ssh import wrap_remote
 from remote_svc_ctrl.systemd import MemoryUsage
 
 
@@ -50,7 +51,7 @@ def test_run_service_remote(mocker: MockerFixture):
     run_service("restart", "my-app", host="user@server")
 
     mock_run.assert_called_once_with(
-        ["ssh", "-o", "BatchMode=yes", "user@server", "service", "my-app", "restart"],
+        wrap_remote(["service", "my-app", "restart"], "user@server"),
         capture_output=True,
         text=True,
         timeout=10,
@@ -212,17 +213,7 @@ def test_get_process_stats_remote(mocker: MockerFixture):
     get_process_stats(99, host="user@server")
 
     mock_run.assert_called_once_with(
-        [
-            "ssh",
-            "-o",
-            "BatchMode=yes",
-            "user@server",
-            "ps",
-            "-p",
-            "99",
-            "-o",
-            "rss=,cputime=,nlwp=",
-        ],
+        wrap_remote(["ps", "-p", "99", "-o", "rss=,cputime=,nlwp="], "user@server"),
         capture_output=True,
         text=True,
         timeout=10,
@@ -378,22 +369,9 @@ def test_read_process_logs_remote(mocker: MockerFixture):
 
     readlink_call = mock_run.call_args_list[0].args[0]
     tail_call = mock_run.call_args_list[1].args[0]
-    assert readlink_call == [
-        "ssh",
-        "-o",
-        "BatchMode=yes",
-        "user@server",
-        "readlink",
-        "-f",
-        "/proc/7/fd/1",
-    ]
-    assert tail_call == [
-        "ssh",
-        "-o",
-        "BatchMode=yes",
-        "user@server",
-        "tail",
-        "-n",
-        "20",
-        "/var/log/my-app.out",
-    ]
+    assert readlink_call == wrap_remote(
+        ["readlink", "-f", "/proc/7/fd/1"], "user@server"
+    )
+    assert tail_call == wrap_remote(
+        ["tail", "-n", "20", "/var/log/my-app.out"], "user@server"
+    )

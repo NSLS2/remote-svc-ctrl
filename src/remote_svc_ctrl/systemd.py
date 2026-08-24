@@ -5,8 +5,12 @@ import subprocess
 from dataclasses import dataclass
 from datetime import datetime
 
+from .ssh import wrap_remote
 
-def run_systemctl(command: str, service: str, host: str | None = None) -> str:
+
+def run_systemctl(
+    command: str, service: str, host: str | None = None, lines: int | None = None
+) -> str:
     """Run a systemctl subcommand against a service and return stdout.
 
     Parameters
@@ -17,11 +21,14 @@ def run_systemctl(command: str, service: str, host: str | None = None) -> str:
         The systemd unit name.
     host : str or None
         SSH target as user@host, or None for localhost.
+    lines : int or None
+        For "status", the number of journal log lines to include (--lines).
     """
-    cmd = ["systemctl", "--no-pager", "--no-ask-password"]
-    if host:
-        cmd += ["--host", host]
-    cmd += [command, service]
+    args = ["systemctl", "--no-pager", "--no-ask-password"]
+    if command == "status" and lines is not None:
+        args.append(f"--lines={lines}")
+    args += [command, service]
+    cmd = wrap_remote(args, host)
     result = subprocess.run(
         cmd,
         capture_output=True,

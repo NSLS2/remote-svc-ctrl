@@ -3,14 +3,8 @@
 import re
 import subprocess
 
+from .ssh import wrap_remote
 from .systemd import MemoryUsage, ServiceStatus
-
-
-def _wrap_remote(args: list[str], host: str | None) -> list[str]:
-    """Wrap a command in a non-interactive ssh call when a host is given."""
-    if host:
-        return ["ssh", "-o", "BatchMode=yes", host, *args]
-    return args
 
 
 def run_service(
@@ -34,7 +28,7 @@ def run_service(
         returncode is meaningful for "status" (LSB exit codes), so it is
         returned rather than discarded.
     """
-    cmd = _wrap_remote(["service", service, command], host)
+    cmd = wrap_remote(["service", service, command], host)
     result = subprocess.run(
         cmd,
         capture_output=True,
@@ -148,7 +142,7 @@ def get_process_stats(
     host : str or None
         SSH target as user@host, or None for localhost.
     """
-    cmd = _wrap_remote(["ps", "-p", str(pid), "-o", "rss=,cputime=,nlwp="], host)
+    cmd = wrap_remote(["ps", "-p", str(pid), "-o", "rss=,cputime=,nlwp="], host)
     empty = MemoryUsage(current=0.0, peak=0.0, swap=0.0, swap_peak=0.0), 0.0, None
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
@@ -178,7 +172,7 @@ def read_process_logs(pid: int, host: str | None = None, lines: int = 20) -> lis
     collected: list[str] = []
     seen: set[str] = set()
     for fd in ("1", "2"):
-        resolve = _wrap_remote(["readlink", "-f", f"/proc/{pid}/fd/{fd}"], host)
+        resolve = wrap_remote(["readlink", "-f", f"/proc/{pid}/fd/{fd}"], host)
         try:
             target = subprocess.run(resolve, capture_output=True, text=True, timeout=10)
         except (subprocess.SubprocessError, OSError):
@@ -193,7 +187,7 @@ def read_process_logs(pid: int, host: str | None = None, lines: int = 20) -> lis
         ):
             continue
         seen.add(path)
-        tail = _wrap_remote(["tail", "-n", str(lines), path], host)
+        tail = wrap_remote(["tail", "-n", str(lines), path], host)
         try:
             result = subprocess.run(tail, capture_output=True, text=True, timeout=10)
         except (subprocess.SubprocessError, OSError):
@@ -252,7 +246,7 @@ def read_initd_description(service: str, host: str | None = None) -> str:
     host : str or None
         SSH target as user@host, or None for localhost.
     """
-    cmd = _wrap_remote(["cat", f"/etc/init.d/{service}"], host)
+    cmd = wrap_remote(["cat", f"/etc/init.d/{service}"], host)
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     except (subprocess.SubprocessError, OSError):
