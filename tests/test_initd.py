@@ -7,9 +7,11 @@ from pytest_mock import MockerFixture
 
 from remote_svc_ctrl.initd import (
     _parse_initd_description,
+    _parse_proc_status_memory,
     _parse_process_stats,
     _parse_ps_cputime,
     _parse_ps_lstart,
+    get_process_memory,
     get_process_start,
     get_process_stats,
     is_service_enabled,
@@ -235,6 +237,81 @@ def test_get_process_stats_missing_process(mocker: MockerFixture):
     assert memory == MemoryUsage(current=0.0, peak=0.0, swap=0.0, swap_peak=0.0)
     assert cpu == 0.0
     assert tasks is None
+
+
+# --- _parse_proc_status_memory / get_process_memory ---
+
+
+PROC_STATUS = """\
+Name:\tmy-app
+State:\tS (sleeping)
+VmPeak:\t  200000 kB
+VmSize:\t  190000 kB
+VmHWM:\t   65536 kB
+VmRSS:\t   40960 kB
+VmSwap:\t    1024 kB
+Threads:\t4
+"""
+
+
+def test_parse_proc_status_memory():
+    memory = _parse_proc_status_memory(PROC_STATUS)
+
+    assert memory == MemoryUsage(
+        current=40960 * 1024,
+        peak=65536 * 1024,
+        swap=1024 * 1024,
+        swap_peak=0.0,
+    )
+
+
+def test_parse_proc_status_memory_missing_fields():
+    memory = _parse_proc_status_memory("Name:\tmy-app\nState:\tS\n")
+
+    assert memory == MemoryUsage(current=0.0, peak=0.0, swap=0.0, swap_peak=0.0)
+
+
+def test_get_process_memory_local(mocker: MockerFixture):
+    mock_run = mocker.patch("remote_svc_ctrl.initd.subprocess.run")
+    mock_run.return_value.returncode = 0
+    mock_run.return_value.stdout = PROC_STATUS
+
+    memory = get_process_memory(1234)
+
+    mock_run.assert_called_once_with(
+        ["cat", "/proc/1234/status"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert memory.current == 40960 * 1024
+    assert memory.peak == 65536 * 1024
+    assert memory.swap == 1024 * 1024
+
+
+def test_get_process_memory_remote(mocker: MockerFixture):
+    mock_run = mocker.patch("remote_svc_ctrl.initd.subprocess.run")
+    mock_run.return_value.returncode = 0
+    mock_run.return_value.stdout = PROC_STATUS
+
+    get_process_memory(7, host="user@server")
+
+    mock_run.assert_called_once_with(
+        wrap_remote(["cat", "/proc/7/status"], "user@server"),
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+
+
+def test_get_process_memory_missing_process(mocker: MockerFixture):
+    mock_run = mocker.patch("remote_svc_ctrl.initd.subprocess.run")
+    mock_run.return_value.returncode = 1
+    mock_run.return_value.stdout = ""
+
+    assert get_process_memory(1234) == MemoryUsage(
+        current=0.0, peak=0.0, swap=0.0, swap_peak=0.0
+    )
 
 
 # --- _parse_ps_lstart / get_process_start ---

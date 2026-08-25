@@ -6,6 +6,7 @@ connection (ControlMaster) instead of re-authenticating every time.
 """
 
 import hashlib
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -15,9 +16,14 @@ CONTROL_PERSIST = 60
 
 
 def control_path(host: str) -> str:
-    """Return the ssh ControlPath socket used to multiplex a host's session."""
-    digest = hashlib.sha1(host.encode()).hexdigest()[:16]
-    return str(Path(tempfile.gettempdir()) / f"remote-svc-ctrl-{digest}.sock")
+    """Return the ssh ControlPath socket used to multiplex a host's session.
+
+    Includes the uid so sockets do not collide between users on a shared host,
+    and uses SHA-256 (usedforsecurity=False) to avoid FIPS-mode restrictions.
+    """
+    digest = hashlib.sha256(host.encode(), usedforsecurity=False).hexdigest()[:16]
+    name = f"remote-svc-ctrl-{os.getuid()}-{digest}.sock"
+    return str(Path(tempfile.gettempdir()) / name)
 
 
 def wrap_remote(args: list[str], host: str | None) -> list[str]:
@@ -53,6 +59,8 @@ def close_connection(host: str | None) -> None:
         return
     cmd = [
         "ssh",
+        "-o",
+        "BatchMode=yes",
         "-o",
         f"ControlPath={control_path(host)}",
         "-O",

@@ -6,7 +6,7 @@ import atexit
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 from typing import Protocol
 
 from epicsdbbuilder import SetSimpleRecordNames
@@ -15,6 +15,7 @@ from softioc.asyncio_dispatcher import AsyncioDispatcher
 
 from ._version import __version__  # noqa: F401
 from .initd import (
+    get_process_memory,
     get_process_start,
     get_process_stats,
     is_service_enabled,
@@ -106,10 +107,16 @@ class InitdBackend:
         # A running service reports a PID; use it to gather live process stats.
         if status.main_pid is not None:
             memory, cpu, tasks = get_process_stats(status.main_pid, self.host)
-            status.memory = memory
+            # /proc gives current, peak and swap; fall back to ps RSS if absent.
+            proc_memory = get_process_memory(status.main_pid, self.host)
+            status.memory = proc_memory if proc_memory.current else memory
             status.cpu = cpu
             status.tasks = tasks
             status.since = get_process_start(status.main_pid, self.host)
+            # Init.d has no journal, so derive uptime from the start time.
+            if status.since is not None:
+                elapsed = (datetime.now() - status.since).total_seconds()
+                status.duration = elapsed if elapsed >= 0 else None
         # Logs: prefer an explicit log file, else the process's stdout/stderr.
         if self.log_file:
             logs = read_log_file(self.log_file, self.host, self.log_lines)
@@ -572,6 +579,7 @@ def main():
     parser.add_argument(
         "--log-lines",
         type=int,
+        min=1,
         default=20,
         help="Number of log lines to track (default: 20)",
     )
@@ -579,6 +587,9 @@ def main():
         "-v", "--version", action="version", version=f"remote-svc-ctrl {__version__}"
     )
     args = parser.parse_args()
+
+    if args.log_lines <= 0:
+        parser.error("--log-lines must be a positive integer")
 
     create_ioc(
         args.prefix,

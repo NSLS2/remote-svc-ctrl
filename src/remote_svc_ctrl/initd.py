@@ -95,6 +95,9 @@ def parse_initd_status(
         active_state=active_state,
         sub_state=sub_state,
         since=None,
+        duration=None,
+        result="",
+        exit_info="",
         main_pid=main_pid,
         tasks=None,
         memory=MemoryUsage(current=0.0, peak=0.0, swap=0.0, swap_peak=0.0),
@@ -152,6 +155,48 @@ def get_process_stats(
     if result.returncode != 0:
         return empty
     return _parse_process_stats(result.stdout)
+
+
+def _parse_proc_status_memory(content: str) -> MemoryUsage:
+    """Parse /proc/<pid>/status into a MemoryUsage.
+
+    Reads current (VmRSS), peak (VmHWM) and swap (VmSwap), which the kernel
+    reports in kB. Missing fields default to zero.
+    """
+    values: dict[str, float] = {}
+    for key in ("VmRSS", "VmHWM", "VmSwap"):
+        match = re.search(rf"^{key}:\s+(\d+)\s*kB", content, re.MULTILINE)
+        if match:
+            values[key] = float(match.group(1)) * 1024
+    return MemoryUsage(
+        current=values.get("VmRSS", 0.0),
+        peak=values.get("VmHWM", 0.0),
+        swap=values.get("VmSwap", 0.0),
+        swap_peak=0.0,
+    )
+
+
+def get_process_memory(pid: int, host: str | None = None) -> MemoryUsage:
+    """Return current, peak and swap memory for a PID from /proc/<pid>/status.
+
+    Any error (missing process, permission denied) yields zeroed memory.
+
+    Parameters
+    ----------
+    pid : int
+        The process ID to inspect.
+    host : str or None
+        SSH target as user@host, or None for localhost.
+    """
+    cmd = wrap_remote(["cat", f"/proc/{pid}/status"], host)
+    empty = MemoryUsage(current=0.0, peak=0.0, swap=0.0, swap_peak=0.0)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    except (subprocess.SubprocessError, OSError):
+        return empty
+    if result.returncode != 0:
+        return empty
+    return _parse_proc_status_memory(result.stdout)
 
 
 def _parse_ps_lstart(raw: str) -> datetime | None:

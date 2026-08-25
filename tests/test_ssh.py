@@ -57,6 +57,8 @@ def test_close_connection_sends_exit(mocker: MockerFixture):
         [
             "ssh",
             "-o",
+            "BatchMode=yes",
+            "-o",
             f"ControlPath={control_path('user@server')}",
             "-O",
             "exit",
