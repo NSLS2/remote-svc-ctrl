@@ -1,5 +1,6 @@
 """Init.d (SysV) service interaction via the `service` command."""
 
+import os
 import re
 import subprocess
 from datetime import datetime
@@ -8,8 +9,20 @@ from .ssh import wrap_remote
 from .systemd import MemoryUsage, ServiceStatus
 
 
+def _user_is_root(host: str | None) -> bool:
+    """Return True if the effective service user is root.
+
+    For a "user@host" target the ssh username is inspected; otherwise (a bare
+    host, which ssh connects as the local user, or local execution) the current
+    process euid is used.
+    """
+    if host and "@" in host:
+        return host.split("@", 1)[0] == "root"
+    return os.geteuid() == 0
+
+
 def run_service(
-    command: str, service: str, host: str | None = None
+    command: str, service: str, host: str | None = None, use_sudo: bool = False
 ) -> subprocess.CompletedProcess[str]:
     """Run an init.d service action and return the completed process.
 
@@ -21,6 +34,11 @@ def run_service(
         The init.d service name.
     host : str or None
         SSH target as user@host, or None for localhost.
+    use_sudo : bool
+        Allow using ``sudo -n`` for control actions. Init.d has no polkit
+        equivalent, so non-root users need sudoers rules to start/stop/restart
+        a service. sudo is used only when the effective user is not root, and
+        never for read-only "status".
 
     Returns
     -------
@@ -29,9 +47,11 @@ def run_service(
         returncode is meaningful for "status" (LSB exit codes), so it is
         returned rather than discarded.
     """
-    cmd = wrap_remote(["service", service, command], host)
+    args = ["service", service, command]
+    if use_sudo and command != "status" and not _user_is_root(host):
+        args = ["sudo", "-n", *args]
     result = subprocess.run(
-        cmd,
+        wrap_remote(args, host),
         capture_output=True,
         text=True,
         timeout=10,

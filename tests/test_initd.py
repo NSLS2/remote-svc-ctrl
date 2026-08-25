@@ -11,6 +11,7 @@ from remote_svc_ctrl.initd import (
     _parse_process_stats,
     _parse_ps_cputime,
     _parse_ps_lstart,
+    _user_is_root,
     get_process_memory,
     get_process_start,
     get_process_stats,
@@ -84,6 +85,114 @@ def test_run_service_status_allows_nonzero(mocker: MockerFixture):
 
     result = run_service("status", "my-app")
     assert result.returncode == 3
+
+
+def test_run_service_sudo_used_for_nonroot_control(mocker: MockerFixture):
+    mocker.patch("remote_svc_ctrl.initd.os.geteuid", return_value=1000)
+    mock_run = mocker.patch("remote_svc_ctrl.initd.subprocess.run")
+    mock_run.return_value.stdout = ""
+    mock_run.return_value.returncode = 0
+
+    run_service("restart", "my-app", use_sudo=True)
+
+    mock_run.assert_called_once_with(
+        ["sudo", "-n", "service", "my-app", "restart"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+
+
+def test_run_service_no_sudo_for_root_local(mocker: MockerFixture):
+    mocker.patch("remote_svc_ctrl.initd.os.geteuid", return_value=0)
+    mock_run = mocker.patch("remote_svc_ctrl.initd.subprocess.run")
+    mock_run.return_value.stdout = ""
+    mock_run.return_value.returncode = 0
+
+    run_service("restart", "my-app", use_sudo=True)
+
+    mock_run.assert_called_once_with(
+        ["service", "my-app", "restart"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+
+
+def test_run_service_no_sudo_for_root_remote_user(mocker: MockerFixture):
+    mock_run = mocker.patch("remote_svc_ctrl.initd.subprocess.run")
+    mock_run.return_value.stdout = ""
+    mock_run.return_value.returncode = 0
+
+    run_service("restart", "my-app", host="root@server", use_sudo=True)
+
+    mock_run.assert_called_once_with(
+        wrap_remote(["service", "my-app", "restart"], "root@server"),
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+
+
+def test_run_service_sudo_for_nonroot_remote_user(mocker: MockerFixture):
+    mock_run = mocker.patch("remote_svc_ctrl.initd.subprocess.run")
+    mock_run.return_value.stdout = ""
+    mock_run.return_value.returncode = 0
+
+    run_service("start", "my-app", host="user@server", use_sudo=True)
+
+    mock_run.assert_called_once_with(
+        wrap_remote(["sudo", "-n", "service", "my-app", "start"], "user@server"),
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+
+
+def test_run_service_no_sudo_without_flag(mocker: MockerFixture):
+    # Non-root, but --sudo not requested: never escalate.
+    mocker.patch("remote_svc_ctrl.initd.os.geteuid", return_value=1000)
+    mock_run = mocker.patch("remote_svc_ctrl.initd.subprocess.run")
+    mock_run.return_value.stdout = ""
+    mock_run.return_value.returncode = 0
+
+    run_service("restart", "my-app")
+
+    mock_run.assert_called_once_with(
+        ["service", "my-app", "restart"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+
+
+def test_run_service_sudo_not_used_for_status(mocker: MockerFixture):
+    mocker.patch("remote_svc_ctrl.initd.os.geteuid", return_value=1000)
+    mock_run = mocker.patch("remote_svc_ctrl.initd.subprocess.run")
+    mock_run.return_value.stdout = "running"
+    mock_run.return_value.returncode = 0
+
+    run_service("status", "my-app", use_sudo=True)
+
+    mock_run.assert_called_once_with(
+        ["service", "my-app", "status"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+
+
+def test_user_is_root(mocker: MockerFixture):
+    assert _user_is_root("root@server") is True
+    assert _user_is_root("user@server") is False
+
+    mocker.patch("remote_svc_ctrl.initd.os.geteuid", return_value=0)
+    assert _user_is_root(None) is True
+    assert _user_is_root("server") is True
+
+    mocker.patch("remote_svc_ctrl.initd.os.geteuid", return_value=1000)
+    assert _user_is_root(None) is False
+    assert _user_is_root("server") is False
 
 
 # --- parse_initd_status ---
