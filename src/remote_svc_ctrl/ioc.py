@@ -4,12 +4,13 @@ import argparse
 import asyncio
 import atexit
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum
 from typing import Protocol
 
 from epicsdbbuilder import SetSimpleRecordNames
-from softioc import builder, softioc
+from softioc import alarm, builder, softioc
 from softioc.asyncio_dispatcher import AsyncioDispatcher
 
 from ._version import __version__  # noqa: F401
@@ -185,31 +186,57 @@ class ActiveState(_StateEnum):
         return Severity.NO_ALARM
 
 
-class SubState(_StateEnum):
+class SubState(StrEnum):
     """Systemd unit sub-states."""
 
-    RUNNING = 0
-    DEAD = 1
-    EXITED = 2
-    FAILED = 3
-    AUTO_RESTART = 4
-    START = 5
-    STOP = 6
-    WAITING = 7
-    RELOAD = 8
-    CONDITION = 9
-    START_PRE = 10
-    START_POST = 11
-    STOP_SIGTERM = 12
-    STOP_SIGKILL = 13
-    STOP_POST = 14
-    MOUNTED = 15
+    RUNNING = "running"
+    DEAD = "dead"
+    EXITED = "exited"
+    FAILED = "failed"
+    AUTO_RESTART = "auto-restart"
+    START = "start"
+    STOP = "stop"
+    WAITING = "waiting"
+    RELOAD = "reload"
+    CONDITION = "condition"
+    START_PRE = "start-pre"
+    START_POST = "start-post"
+    STOP_PRE = "stop-pre"
+    STOP_SIGTERM = "stop-sigterm"
+    STOP_SIGKILL = "stop-sigkill"
+    STOP_POST = "stop-post"
+    FINAL_SIGTERM = "final-sigterm"
+    FINAL_SIGKILL = "final-sigkill"
+    FINAL_WATCHDOG = "final-watchdog"
+    CLEANING = "cleaning"
+    MOUNTED = "mounted"
+    MOUNTING = "mounting"
+    UNMOUNTING = "unmounting"
+    PLUGGED = "plugged"
+    LISTENING = "listening"
+    TENTATIVE = "tentative"
+    ACTIVATING = "activating"
+    ACTIVATING_DONE = "activating-done"
+    DEACTIVATING = "deactivating"
+    DEACTIVATING_SIGTERM = "deactivating-sigterm"
+    DEACTIVATING_SIGKILL = "deactivating-sigkill"
 
     @property
-    def severity(self) -> str:
+    def severity(self) -> int:
+        """Return the alarm severity for this sub-state."""
         if self == self.FAILED:
-            return Severity.MAJOR
-        return Severity.NO_ALARM
+            return alarm.MAJOR_ALARM
+        return alarm.NO_ALARM
+
+
+@dataclass
+class _TrackedStates:
+    """Snapshot of states used to detect changes."""
+
+    active: ActiveState = ActiveState.ACTIVE
+    sub: SubState = SubState.RUNNING
+    load: LoadState = LoadState.LOADED
+    enabled: EnabledState = EnabledState.ENABLED
 
 
 # Severity field name prefixes for mbbi state indices 0-15
@@ -331,22 +358,23 @@ def create_ioc(
     SetSimpleRecordNames(prefix=prefix, separator="")
 
     # --- Status PVs (read-only) ---
-    pv_unit = builder.stringIn("Unit", initial_value="")
-    pv_description = builder.stringIn("Desc", initial_value="")
+    pv_unit = builder.longStringIn("Unit", length=256, initial_value="")
+    pv_description = builder.longStringIn("Desc", length=256, initial_value="")
     pv_load_state = builder.mbbIn(
         "LoadState", *_mbbi_labels(LoadState), **_mbbi_kwargs(LoadState)
     )
-    pv_unit_file = builder.stringIn("UnitFile", initial_value="")
+    pv_unit_file = builder.longStringIn("UnitFile", length=256, initial_value="")
     pv_enabled = builder.mbbIn(
         "Enabled", *_mbbi_labels(EnabledState), **_mbbi_kwargs(EnabledState)
     )
     pv_active_state = builder.mbbIn(
         "ActiveState", *_mbbi_labels(ActiveState), **_mbbi_kwargs(ActiveState)
     )
-    pv_sub_state = builder.mbbIn(
-        "SubState", *_mbbi_labels(SubState), **_mbbi_kwargs(SubState)
-    )
+    pv_sub_state = builder.stringIn("SubState", initial_value="")
     pv_since = builder.stringIn("Since", initial_value="")
+    pv_duration = builder.aIn("Duration", initial_value=0, EGU="s", PREC=3)
+    pv_result = builder.stringIn("Result", initial_value="")
+    pv_exit_info = builder.stringIn("ExitInfo", initial_value="")
     pv_main_pid = builder.longIn("MainPID", initial_value=0)
     pv_tasks = builder.aIn("Tasks", initial_value=0, PREC=0)
     pv_mem_current = builder.aIn("Mem", initial_value=0, EGU="MB", PREC=1)
@@ -365,7 +393,7 @@ def create_ioc(
 
     # --- Command PVs (write from CA client triggers action) ---
     def _is_active() -> bool:
-        return last_states.get("ActiveState") == ActiveState.ACTIVE
+        return last_states is not None and last_states.active == ActiveState.ACTIVE
 
     def _on_start(value):
         if value:
@@ -409,7 +437,7 @@ def create_ioc(
 
     # --- Polling task ---
     egu_cache: dict[str, str] = {}
-    last_states: dict[str, int] = {}
+    last_states: _TrackedStates | None = None
 
     def _set_egu(pv, egu: str):
         """Update EGU field only when it changes, via direct memory write."""
@@ -438,8 +466,20 @@ def create_ioc(
             pv_unit_file.set(status.unit_file)
             pv_enabled.set(_state_index(EnabledState, status.enabled))
             pv_active_state.set(_state_index(ActiveState, status.active_state))
-            pv_sub_state.set(_state_index(SubState, status.sub_state))
+            try:
+                sub = SubState(status.sub_state)
+            except ValueError:
+                sub = None
+            sub_severity = sub.severity if sub else alarm.NO_ALARM
+            pv_sub_state.set(
+                status.sub_state,
+                severity=sub_severity,
+                alarm=sub_severity,
+            )
             pv_since.set(_format_duration(status.since))
+            pv_duration.set(status.duration or 0)
+            pv_result.set(status.result)
+            pv_exit_info.set(status.exit_info)
             pv_main_pid.set(status.main_pid or 0)
             pv_tasks.set(status.tasks or 0)
 
@@ -460,32 +500,44 @@ def create_ioc(
             pv_logs.set("\n".join(status.logs))
 
             # Track state changes and update status message
-            current_states = {
-                "ActiveState": _state_index(ActiveState, status.active_state),
-                "SubState": _state_index(SubState, status.sub_state),
-                "LoadState": _state_index(LoadState, status.load_state),
-                "Enabled": _state_index(EnabledState, status.enabled),
-            }
+            active_enum = ActiveState(_state_index(ActiveState, status.active_state))
+            try:
+                sub_enum = SubState(status.sub_state)
+            except ValueError:
+                sub_enum = SubState.RUNNING
+            load_enum = LoadState(_state_index(LoadState, status.load_state))
+            enabled_enum = EnabledState(_state_index(EnabledState, status.enabled))
+            current_states = _TrackedStates(
+                active=active_enum,
+                sub=sub_enum,
+                load=load_enum,
+                enabled=enabled_enum,
+            )
             if first_poll:
-                _status_msg(
-                    f"{status.active_state}({status.sub_state}) "
-                    f"load={status.load_state} enabled={status.enabled}"
+                state_str = (
+                    f"{status.active_state}({status.sub_state})"
+                    if status.active_state
+                    else "unknown state"
                 )
-                last_states.update(current_states)
+                _status_msg(
+                    f"{state_str} load={status.load_state} enabled={status.enabled}"
+                )
+                nonlocal last_states
+                last_states = current_states
                 first_poll = False
-            elif current_states != last_states:
-                changed = [
-                    k for k in current_states if current_states[k] != last_states.get(k)
-                ]
+            elif current_states != last_states and last_states is not None:
                 parts = []
-                if "ActiveState" in changed or "SubState" in changed:
+                if (
+                    current_states.active != last_states.active
+                    or current_states.sub != last_states.sub
+                ):
                     parts.append(f"{status.active_state}({status.sub_state})")
-                if "LoadState" in changed:
+                if current_states.load != last_states.load:
                     parts.append(f"load={status.load_state}")
-                if "Enabled" in changed:
+                if current_states.enabled != last_states.enabled:
                     parts.append(f"enabled={status.enabled}")
                 _status_msg(" ".join(parts))
-                last_states.update(current_states)
+                last_states = current_states
 
             await asyncio.sleep(1)
 

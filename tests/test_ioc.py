@@ -38,9 +38,9 @@ def test_active_state_labels():
 
 
 def test_sub_state_labels():
-    assert SubState.RUNNING.label == "running"
-    assert SubState.AUTO_RESTART.label == "auto-restart"
-    assert SubState.STOP_SIGTERM.label == "stop-sigterm"
+    assert SubState.RUNNING == "running"
+    assert SubState.AUTO_RESTART == "auto-restart"
+    assert SubState.STOP_SIGTERM == "stop-sigterm"
 
 
 # --- Enum severities ---
@@ -61,9 +61,11 @@ def test_active_state_severities():
 
 
 def test_sub_state_severities():
-    assert SubState.RUNNING.severity == Severity.NO_ALARM
-    assert SubState.FAILED.severity == Severity.MAJOR
-    assert SubState.DEAD.severity == Severity.NO_ALARM
+    from softioc import alarm
+
+    assert SubState.RUNNING.severity == alarm.NO_ALARM
+    assert SubState.FAILED.severity == alarm.MAJOR_ALARM
+    assert SubState.DEAD.severity == alarm.NO_ALARM
 
 
 # --- _mbbi_kwargs ---
@@ -111,11 +113,11 @@ def test_mbbi_labels_active_state():
 
 
 def test_mbbi_labels_sub_state():
-    labels = _mbbi_labels(SubState)
-    assert labels[0] == "running"
-    assert labels[3] == "failed"
-    assert labels[4] == "auto-restart"
-    assert len(labels) == 16
+    # SubState is now a StrEnum, not used with mbbi
+    assert SubState.RUNNING == "running"
+    assert SubState.FAILED == "failed"
+    assert SubState.AUTO_RESTART == "auto-restart"
+    assert len(SubState) == 31
 
 
 # --- _state_index ---
@@ -125,7 +127,6 @@ def test_state_index_known_values():
     assert _state_index(LoadState, "loaded") == 0
     assert _state_index(LoadState, "not-found") == 1
     assert _state_index(ActiveState, "failed") == 3
-    assert _state_index(SubState, "auto-restart") == 4
 
 
 def test_state_index_unknown_value_returns_zero():

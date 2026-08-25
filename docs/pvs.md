@@ -14,6 +14,9 @@ Given a prefix like `XF:28ID1-CT{SVC-XSPD:1}`, the IOC exposes the following PVs
 | `ActiveState` | mbbi | Active state (active, reloading, inactive, failed, ...) |
 | `SubState` | mbbi | Sub-state (running, dead, exited, failed, ...) |
 | `Since` | stringin | Uptime / time since entering current state (e.g. "3d 2h 15m 10s") |
+| `Duration` | ai | Duration the process ran before exiting (seconds) |
+| `Result` | stringin | Exit result (e.g. "signal", "exit-code") — empty when active |
+| `ExitInfo` | stringin | Exit details (e.g. "code=killed, signal=SEGV") — empty when active |
 | `MainPID` | longin | Main process ID |
 | `Tasks` | ai | Number of tasks |
 | `Mem` | ai | Current memory usage (EGU auto-scales: KB, MB, GB) |
