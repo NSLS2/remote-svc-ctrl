@@ -4,6 +4,7 @@ from datetime import datetime
 
 from pytest_mock import MockerFixture
 
+from remote_svc_ctrl.ssh import wrap_remote
 from remote_svc_ctrl.systemd import (
     MemoryUsage,
     _parse_cpu_time,
@@ -166,22 +167,58 @@ def test_run_systemctl_remote(mocker: MockerFixture):
     result = run_systemctl("restart", "my-app.service", host="user@server")
 
     mock_run.assert_called_once_with(
-        [
-            "ssh",
-            "-o",
-            "BatchMode=yes",
+        wrap_remote(
+            [
+                "systemctl",
+                "--no-pager",
+                "--no-ask-password",
+                "restart",
+                "my-app.service",
+            ],
             "user@server",
-            "systemctl",
-            "--no-pager",
-            "--no-ask-password",
-            "restart",
-            "my-app.service",
-        ],
+        ),
         capture_output=True,
         text=True,
         timeout=10,
     )
     assert result == "output"
+
+
+def test_run_systemctl_status_includes_lines(mocker: MockerFixture):
+    mock_run = mocker.patch("remote_svc_ctrl.systemd.subprocess.run")
+    mock_run.return_value.stdout = "output"
+    mock_run.return_value.returncode = 0
+
+    run_systemctl("status", "sshd.service", lines=50)
+
+    mock_run.assert_called_once_with(
+        [
+            "systemctl",
+            "--no-pager",
+            "--no-ask-password",
+            "--lines=50",
+            "status",
+            "sshd.service",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+
+
+def test_run_systemctl_lines_ignored_for_non_status(mocker: MockerFixture):
+    mock_run = mocker.patch("remote_svc_ctrl.systemd.subprocess.run")
+    mock_run.return_value.stdout = "output"
+    mock_run.return_value.returncode = 0
+
+    run_systemctl("restart", "sshd.service", lines=50)
+
+    mock_run.assert_called_once_with(
+        ["systemctl", "--no-pager", "--no-ask-password", "restart", "sshd.service"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
 
 
 def test_run_systemctl_raises_on_failure(mocker: MockerFixture):
