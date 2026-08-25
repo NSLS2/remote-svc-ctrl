@@ -579,7 +579,6 @@ def main():
     parser.add_argument(
         "--log-lines",
         type=int,
-        min=1,
         default=20,
         help="Number of log lines to track (default: 20)",
     )
