@@ -14,7 +14,9 @@ from softioc.asyncio_dispatcher import AsyncioDispatcher
 
 from ._version import __version__  # noqa: F401
 from .initd import (
+    get_process_start,
     get_process_stats,
+    is_service_enabled,
     parse_initd_status,
     read_initd_description,
     read_process_logs,
@@ -99,12 +101,14 @@ class InitdBackend:
         if not self._description:
             self._description = read_initd_description(self.service, self.host)
         status.description = self._description
+        status.enabled = is_service_enabled(self.service, self.host)
         # A running service reports a PID; use it to gather live process stats.
         if status.main_pid is not None:
             memory, cpu, tasks = get_process_stats(status.main_pid, self.host)
             status.memory = memory
             status.cpu = cpu
             status.tasks = tasks
+            status.since = get_process_start(status.main_pid, self.host)
         # Logs: prefer an explicit log file, else the process's stdout/stderr.
         if self.log_file:
             logs = read_log_file(self.log_file, self.host, self.log_lines)

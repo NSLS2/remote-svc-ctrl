@@ -1,6 +1,7 @@
 """Tests for remote_svc_ctrl.initd module."""
 
 import subprocess
+from datetime import datetime
 
 from pytest_mock import MockerFixture
 
@@ -8,7 +9,10 @@ from remote_svc_ctrl.initd import (
     _parse_initd_description,
     _parse_process_stats,
     _parse_ps_cputime,
+    _parse_ps_lstart,
+    get_process_start,
     get_process_stats,
+    is_service_enabled,
     parse_initd_status,
     read_initd_description,
     read_process_logs,
@@ -90,6 +94,7 @@ def test_parse_status_running_by_keyword():
     assert status.active_state == "active"
     assert status.sub_state == "running"
     assert status.load_state == "loaded"
+    assert status.unit_file == "/etc/init.d/my-app"
 
 
 def test_parse_status_stopped_by_keyword():
@@ -230,6 +235,101 @@ def test_get_process_stats_missing_process(mocker: MockerFixture):
     assert memory == MemoryUsage(current=0.0, peak=0.0, swap=0.0, swap_peak=0.0)
     assert cpu == 0.0
     assert tasks is None
+
+
+# --- _parse_ps_lstart / get_process_start ---
+
+
+def test_parse_ps_lstart():
+    assert _parse_ps_lstart("Mon Aug 25 10:15:30 2026") == datetime(
+        2026, 8, 25, 10, 15, 30
+    )
+
+
+def test_parse_ps_lstart_extra_whitespace():
+    # ps pads the day-of-month, producing a double space.
+    assert _parse_ps_lstart(" Tue Aug  5 06:40:50 2026\n") == datetime(
+        2026, 8, 5, 6, 40, 50
+    )
+
+
+def test_parse_ps_lstart_empty():
+    assert _parse_ps_lstart("") is None
+
+
+def test_parse_ps_lstart_invalid():
+    assert _parse_ps_lstart("not a date") is None
+
+
+def test_get_process_start_local(mocker: MockerFixture):
+    mock_run = mocker.patch("remote_svc_ctrl.initd.subprocess.run")
+    mock_run.return_value.returncode = 0
+    mock_run.return_value.stdout = "Mon Aug 25 10:15:30 2026\n"
+
+    result = get_process_start(1234)
+
+    mock_run.assert_called_once_with(
+        ["ps", "-p", "1234", "-o", "lstart="],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result == datetime(2026, 8, 25, 10, 15, 30)
+
+
+def test_get_process_start_missing_process(mocker: MockerFixture):
+    mock_run = mocker.patch("remote_svc_ctrl.initd.subprocess.run")
+    mock_run.return_value.returncode = 1
+    mock_run.return_value.stdout = ""
+
+    assert get_process_start(1234) is None
+
+
+# --- is_service_enabled ---
+
+
+def test_is_service_enabled_on(mocker: MockerFixture):
+    mock_run = mocker.patch("remote_svc_ctrl.initd.subprocess.run")
+    mock_run.return_value.returncode = 0
+    mock_run.return_value.stdout = ""
+    mock_run.return_value.stderr = ""
+
+    result = is_service_enabled("my-app")
+
+    mock_run.assert_called_once_with(
+        ["chkconfig", "my-app"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result == "enabled"
+
+
+def test_is_service_enabled_off(mocker: MockerFixture):
+    mock_run = mocker.patch("remote_svc_ctrl.initd.subprocess.run")
+    mock_run.return_value.returncode = 1
+    mock_run.return_value.stdout = ""
+    mock_run.return_value.stderr = ""
+
+    assert is_service_enabled("my-app") == "disabled"
+
+
+def test_is_service_enabled_unknown_service(mocker: MockerFixture):
+    mock_run = mocker.patch("remote_svc_ctrl.initd.subprocess.run")
+    mock_run.return_value.returncode = 1
+    mock_run.return_value.stdout = ""
+    mock_run.return_value.stderr = "error reading information on service my-app\n"
+
+    assert is_service_enabled("my-app") == ""
+
+
+def test_is_service_enabled_chkconfig_missing(mocker: MockerFixture):
+    mocker.patch(
+        "remote_svc_ctrl.initd.subprocess.run",
+        side_effect=FileNotFoundError("chkconfig"),
+    )
+
+    assert is_service_enabled("my-app") == ""
 
 
 # --- _parse_initd_description ---

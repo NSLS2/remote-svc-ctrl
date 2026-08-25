@@ -2,6 +2,7 @@
 
 import re
 import subprocess
+from datetime import datetime
 
 from .ssh import wrap_remote
 from .systemd import MemoryUsage, ServiceStatus
@@ -89,7 +90,7 @@ def parse_initd_status(
         unit=service,
         description="",
         load_state="loaded",
-        unit_file="",
+        unit_file=f"/etc/init.d/{service}",
         enabled="",
         active_state=active_state,
         sub_state=sub_state,
@@ -151,6 +152,65 @@ def get_process_stats(
     if result.returncode != 0:
         return empty
     return _parse_process_stats(result.stdout)
+
+
+def _parse_ps_lstart(raw: str) -> datetime | None:
+    """Parse a ps ``lstart`` value like 'Mon Aug 25 10:15:30 2026' to a datetime."""
+    text = " ".join(raw.split())
+    if not text:
+        return None
+    try:
+        return datetime.strptime(text, "%a %b %d %H:%M:%S %Y")
+    except ValueError:
+        return None
+
+
+def get_process_start(pid: int, host: str | None = None) -> datetime | None:
+    """Return the start time of a running PID via `ps`, or None if unavailable.
+
+    Parameters
+    ----------
+    pid : int
+        The process ID to inspect.
+    host : str or None
+        SSH target as user@host, or None for localhost.
+    """
+    cmd = wrap_remote(["ps", "-p", str(pid), "-o", "lstart="], host)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    except (subprocess.SubprocessError, OSError):
+        return None
+    if result.returncode != 0:
+        return None
+    return _parse_ps_lstart(result.stdout)
+
+
+def is_service_enabled(service: str, host: str | None = None) -> str:
+    """Return the enabled state of a service from `chkconfig`.
+
+    Returns "enabled" when chkconfig reports the service on for the current
+    runlevel, "disabled" when it is off, and "" when the state is unknown
+    (chkconfig missing or the service is not registered).
+
+    Parameters
+    ----------
+    service : str
+        The init.d service name.
+    host : str or None
+        SSH target as user@host, or None for localhost.
+    """
+    cmd = wrap_remote(["chkconfig", service], host)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    except (subprocess.SubprocessError, OSError):
+        return ""
+    # `chkconfig <name>` exits 0 when on in the current runlevel, non-zero when
+    # off; an error on stderr (e.g. unknown service) means the state is unknown.
+    if result.returncode == 0:
+        return "enabled"
+    if result.stderr.strip():
+        return ""
+    return "disabled"
 
 
 def read_process_logs(pid: int, host: str | None = None, lines: int = 20) -> list[str]:
