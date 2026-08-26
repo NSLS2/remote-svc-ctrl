@@ -9,6 +9,7 @@ This can be particularly useful for managing acquisition/control services on ven
 - Poll `systemctl status` parse its output, and publish relevant information as PVs
 - Start, stop, and restart services via CA/PVA
 - Monitor over SSH for services running on remote hosts
+- Also supports legacy **init.d (SysV)** services via `--initd`
 - Phoebus operator screen included
 
 ## Usage
@@ -19,6 +20,9 @@ remote-svc-ctrl "XF:28ID1-CT{SVC-MyApp:1}" my-app.service
 
 # Monitor a service on a remote host via SSH
 remote-svc-ctrl "XF:28ID1-CT{SVC-MyApp:1}" my-app.service --host user@server
+
+# Monitor a legacy init.d (SysV) service
+remote-svc-ctrl "XF:28ID1-CT{SVC-MyApp:1}" my-app --initd
 ```
 
 ## Operator Screen
@@ -31,6 +35,7 @@ A Phoebus `.bob` screen is provided in [`op/service_ctrl.bob`](op/service_ctrl.b
 
 - [PV Reference](docs/pvs.md) — full list of exposed PVs and their behavior
 - [Polkit Configuration](docs/polkit.md) — allow non-root service control without a password
+- [init.d (SysV) Services](docs/initd.md) — manage legacy services with `--initd`, including sudoers setup
 - [SSH Key Setup](docs/ssh-setup.md) — configure passwordless SSH for remote host management
 - [Journal Log Access](docs/log-access.md) — grant the IOC access to service logs, or configure alternative logging approaches
 
@@ -50,4 +55,5 @@ uv run pre-commit run --all-files   # Linting and formatting
 - [pythonSoftIOC](https://github.com/dls-controls/pythonSoftIOC) >= 4.7.0
 - `systemctl` available on the target host
 - For non-root service control: appropriate polkit rules configured on the target host
+- For init.d services (`--initd`): `service` and `chkconfig` on the target host, and sudoers rules for non-root control (see [docs/initd.md](docs/initd.md))
 - SSH key-based auth configured for remote hosts

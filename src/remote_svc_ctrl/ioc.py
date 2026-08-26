@@ -84,11 +84,13 @@ class InitdBackend:
         host: str | None = None,
         log_file: str | None = None,
         log_lines: int = 20,
+        use_sudo: bool = False,
     ):
         self.service = service
         self.host = host
         self.log_file = log_file
         self.log_lines = log_lines
+        self.use_sudo = use_sudo
         self._description: str | None = None
         # Close the multiplexed ssh connection when the process exits.
         if host:
@@ -129,7 +131,7 @@ class InitdBackend:
         return status
 
     def run_command(self, command: str) -> None:
-        run_service(command, self.service, self.host)
+        run_service(command, self.service, self.host, use_sudo=self.use_sudo)
 
 
 class Severity:
@@ -337,6 +339,7 @@ def create_ioc(
     use_initd: bool = False,
     log_file: str | None = None,
     log_lines: int = 20,
+    use_sudo: bool = False,
 ):
     """Create and run the IOC for monitoring a service.
 
@@ -355,9 +358,11 @@ def create_ioc(
         journal/process output.
     log_lines : int
         Number of log lines to track.
+    use_sudo : bool
+        For init.d, run control actions via ``sudo -n`` (requires sudoers).
     """
     backend: ServiceBackend = (
-        InitdBackend(service, host, log_file, log_lines)
+        InitdBackend(service, host, log_file, log_lines, use_sudo)
         if use_initd
         else SystemdBackend(service, host, log_file, log_lines)
     )
@@ -571,6 +576,11 @@ def main():
         help="Manage the service via init.d (SysV) instead of systemd",
     )
     parser.add_argument(
+        "--sudo",
+        action="store_true",
+        help="For --initd, run control actions via 'sudo -n' (requires sudoers)",
+    )
+    parser.add_argument(
         "--log-file",
         default=None,
         help="Path to a log file to tail for the Logs PV instead of the "
@@ -597,6 +607,7 @@ def main():
         use_initd=args.initd,
         log_file=args.log_file,
         log_lines=args.log_lines,
+        use_sudo=args.sudo,
     )
     softioc.interactive_ioc(globals())
 
