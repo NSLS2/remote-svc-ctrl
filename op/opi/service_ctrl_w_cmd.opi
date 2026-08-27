@@ -1,0 +1,771 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<display typeId="org.csstudio.opibuilder.Display" version="1.0.0">
+  <name>$(SVC) on $(HOST)</name>
+  <x>0</x>
+  <y>0</y>
+  <width>1200</width>
+  <height>650</height>
+  <background_color>
+    <color red="255" green="255" blue="255" />
+  </background_color>
+  <foreground_color>
+    <color red="0" green="0" blue="0" />
+  </foreground_color>
+  <show_grid>true</show_grid>
+  <show_ruler>true</show_ruler>
+  <auto_zoom_to_fit_all>false</auto_zoom_to_fit_all>
+  <boy_version>5.1.0</boy_version>
+
+  <!-- Title -->
+  <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+    <name>Title</name>
+    <x>5</x>
+    <y>5</y>
+    <width>1185</width>
+    <height>30</height>
+    <text>$(SVC) on $(HOST) - $(PREFIX)</text>
+    <transparent>false</transparent>
+    <auto_size>false</auto_size>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
+    <foreground_color>
+      <color red="255" green="255" blue="255" />
+    </foreground_color>
+    <background_color>
+      <color red="0" green="149" blue="255" />
+    </background_color>
+    <font>
+      <fontdata fontName="Liberation Sans" height="22" style="1" />
+    </font>
+  </widget>
+
+  <!-- Status group -->
+  <widget typeId="org.csstudio.opibuilder.widgets.groupingContainer" version="1.0.0">
+    <name>Status</name>
+    <x>5</x>
+    <y>35</y>
+    <width>495</width>
+    <height>525</height>
+    <transparent>true</transparent>
+    <show_scrollbar>false</show_scrollbar>
+    <lock_children>false</lock_children>
+    <border_style>13</border_style>
+    <border_width>1</border_width>
+    <border_color>
+      <color red="0" green="149" blue="255" />
+    </border_color>
+    <foreground_color>
+      <color red="0" green="149" blue="255" />
+    </foreground_color>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>Unit Label</name>
+      <x>0</x>
+      <y>12</y>
+      <width>120</width>
+      <height>25</height>
+      <text>Unit</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>Unit</name>
+      <pv_name>$(PREFIX)Unit</pv_name>
+      <x>92</x>
+      <y>12</y>
+      <width>360</width>
+      <height>25</height>
+      <format_type>4</format_type>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>Desc Label</name>
+      <x>0</x>
+      <y>42</y>
+      <width>120</width>
+      <height>25</height>
+      <text>Description</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>Desc</name>
+      <pv_name>$(PREFIX)Desc</pv_name>
+      <x>92</x>
+      <y>42</y>
+      <width>360</width>
+      <height>25</height>
+      <format_type>4</format_type>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>UnitFile Label</name>
+      <x>0</x>
+      <y>72</y>
+      <width>120</width>
+      <height>25</height>
+      <text>Unit File</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>UnitFile</name>
+      <pv_name>$(PREFIX)UnitFile</pv_name>
+      <x>92</x>
+      <y>72</y>
+      <width>360</width>
+      <height>25</height>
+      <format_type>4</format_type>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>Load State Label</name>
+      <x>0</x>
+      <y>102</y>
+      <width>120</width>
+      <height>25</height>
+      <text>Load State</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>LoadState</name>
+      <pv_name>$(PREFIX)LoadState</pv_name>
+      <x>92</x>
+      <y>102</y>
+      <width>360</width>
+      <height>25</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+      <rules>
+        <rule name="TextColor" prop_id="foreground_color" output_expression="false">
+          <exp bool_exp="pv0==0">
+            <value>
+              <color red="0" green="128" blue="0" />
+            </value>
+          </exp>
+          <exp bool_exp="pv0!=0">
+            <value>
+              <color red="255" green="0" blue="0" />
+            </value>
+          </exp>
+          <pv trig="true">$(PREFIX)LoadState</pv>
+        </rule>
+      </rules>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>Enabled Label</name>
+      <x>0</x>
+      <y>132</y>
+      <width>120</width>
+      <height>25</height>
+      <text>Enabled</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>Enabled</name>
+      <pv_name>$(PREFIX)Enabled</pv_name>
+      <x>92</x>
+      <y>132</y>
+      <width>360</width>
+      <height>25</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+      <rules>
+        <rule name="TextColor" prop_id="foreground_color" output_expression="false">
+          <exp bool_exp="pv0==0">
+            <value>
+              <color red="0" green="128" blue="0" />
+            </value>
+          </exp>
+          <exp bool_exp="pv0==1">
+            <value>
+              <color red="204" green="51" blue="51" />
+            </value>
+          </exp>
+          <pv trig="true">$(PREFIX)Enabled</pv>
+        </rule>
+      </rules>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>Active State Label</name>
+      <x>0</x>
+      <y>162</y>
+      <width>120</width>
+      <height>25</height>
+      <text>Active State</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>ActiveState</name>
+      <pv_name>$(PREFIX)ActiveState</pv_name>
+      <x>92</x>
+      <y>162</y>
+      <width>360</width>
+      <height>25</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+      <rules>
+        <rule name="TextColor" prop_id="foreground_color" output_expression="false">
+          <exp bool_exp="pv0==0">
+            <value>
+              <color red="0" green="128" blue="0" />
+            </value>
+          </exp>
+          <exp bool_exp="pv0==1 || pv0==4">
+            <value>
+              <color red="255" green="255" blue="0" />
+            </value>
+          </exp>
+          <exp bool_exp="pv0 != 0 &amp;&amp; pv0 != 1 &amp;&amp; pv0 != 4">
+            <value>
+              <color red="255" green="0" blue="0" />
+            </value>
+          </exp>
+          <pv trig="true">$(PREFIX)ActiveState</pv>
+        </rule>
+      </rules>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>Sub State Label</name>
+      <x>0</x>
+      <y>192</y>
+      <width>120</width>
+      <height>25</height>
+      <text>Sub State</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>SubState</name>
+      <pv_name>$(PREFIX)SubState</pv_name>
+      <x>92</x>
+      <y>192</y>
+      <width>360</width>
+      <height>25</height>
+      <format_type>4</format_type>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+      <rules>
+        <rule name="TextColor" prop_id="foreground_color" output_expression="false">
+          <exp bool_exp="pvSev0==0">
+            <value>
+              <color red="0" green="128" blue="0" />
+            </value>
+          </exp>
+          <exp bool_exp="pvSev0==2">
+            <value>
+              <color red="255" green="0" blue="0" />
+            </value>
+          </exp>
+          <pv trig="true">$(PREFIX)SubState</pv>
+        </rule>
+      </rules>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>Since Label</name>
+      <x>0</x>
+      <y>222</y>
+      <width>120</width>
+      <height>25</height>
+      <text>Since</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>Since</name>
+      <pv_name>$(PREFIX)Since</pv_name>
+      <x>92</x>
+      <y>222</y>
+      <width>360</width>
+      <height>25</height>
+      <format_type>4</format_type>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>MainPID Label</name>
+      <x>0</x>
+      <y>252</y>
+      <width>120</width>
+      <height>25</height>
+      <text>Main PID</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>MainPID</name>
+      <pv_name>$(PREFIX)MainPID</pv_name>
+      <x>92</x>
+      <y>252</y>
+      <width>360</width>
+      <height>25</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>Tasks Label</name>
+      <x>0</x>
+      <y>282</y>
+      <width>120</width>
+      <height>25</height>
+      <text>Tasks</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>Tasks</name>
+      <pv_name>$(PREFIX)Tasks</pv_name>
+      <x>92</x>
+      <y>282</y>
+      <width>360</width>
+      <height>25</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>Memory Label</name>
+      <x>0</x>
+      <y>312</y>
+      <width>120</width>
+      <height>25</height>
+      <text>Memory</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>Mem</name>
+      <pv_name>$(PREFIX)Mem</pv_name>
+      <x>92</x>
+      <y>312</y>
+      <width>85</width>
+      <height>25</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>MemPeak Label</name>
+      <x>182</x>
+      <y>312</y>
+      <width>40</width>
+      <height>25</height>
+      <text>Peak</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>MemPeak</name>
+      <pv_name>$(PREFIX)MemPeak</pv_name>
+      <x>227</x>
+      <y>312</y>
+      <width>85</width>
+      <height>25</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>Swap Label</name>
+      <x>0</x>
+      <y>342</y>
+      <width>120</width>
+      <height>25</height>
+      <text>Swap</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>MemSwap</name>
+      <pv_name>$(PREFIX)MemSwap</pv_name>
+      <x>92</x>
+      <y>342</y>
+      <width>85</width>
+      <height>25</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>SwapPeak Label</name>
+      <x>182</x>
+      <y>342</y>
+      <width>40</width>
+      <height>25</height>
+      <text>Peak</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>MemSwapPeak</name>
+      <pv_name>$(PREFIX)MemSwapPeak</pv_name>
+      <x>227</x>
+      <y>342</y>
+      <width>85</width>
+      <height>25</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>CPU Label</name>
+      <x>0</x>
+      <y>372</y>
+      <width>120</width>
+      <height>25</height>
+      <text>CPU</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>CPU</name>
+      <pv_name>$(PREFIX)CPU</pv_name>
+      <x>92</x>
+      <y>372</y>
+      <width>360</width>
+      <height>25</height>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>CGroup Label</name>
+      <x>0</x>
+      <y>402</y>
+      <width>120</width>
+      <height>25</height>
+      <text>CGroup</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+      <vertical_alignment>1</vertical_alignment>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>CGroup</name>
+      <pv_name>$(PREFIX)CGroup</pv_name>
+      <x>92</x>
+      <y>402</y>
+      <width>360</width>
+      <height>25</height>
+      <format_type>4</format_type>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.Label" version="1.0.0">
+      <name>StatusMessage Label</name>
+      <x>0</x>
+      <y>437</y>
+      <width>120</width>
+      <height>25</height>
+      <text>Status Message</text>
+      <transparent>true</transparent>
+      <auto_size>false</auto_size>
+    </widget>
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>StatusMessage</name>
+      <pv_name>$(PREFIX)StatusMessage</pv_name>
+      <x>0</x>
+      <y>462</y>
+      <width>452</width>
+      <height>25</height>
+      <format_type>4</format_type>
+      <horizontal_alignment>1</horizontal_alignment>
+      <vertical_alignment>1</vertical_alignment>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+    </widget>
+  </widget>
+
+  <!-- Controls group -->
+  <widget typeId="org.csstudio.opibuilder.widgets.groupingContainer" version="1.0.0">
+    <name>Controls</name>
+    <x>5</x>
+    <y>560</y>
+    <width>495</width>
+    <height>80</height>
+    <transparent>true</transparent>
+    <show_scrollbar>false</show_scrollbar>
+    <lock_children>false</lock_children>
+    <border_style>13</border_style>
+    <border_width>1</border_width>
+    <border_color>
+      <color red="0" green="149" blue="255" />
+    </border_color>
+    <foreground_color>
+      <color red="0" green="149" blue="255" />
+    </foreground_color>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.ActionButton" version="2.0.0">
+      <name>Start</name>
+      <x>17</x>
+      <y>7</y>
+      <width>125</width>
+      <height>35</height>
+      <text>Start</text>
+      <push_action_index>0</push_action_index>
+      <toggle_button>false</toggle_button>
+      <foreground_color>
+        <color red="240" green="240" blue="240" />
+      </foreground_color>
+      <background_color>
+        <color red="0" green="128" blue="0" />
+      </background_color>
+      <font>
+        <fontdata fontName="Liberation Sans" height="16" style="1" />
+      </font>
+      <actions hook="false" hook_all="false">
+        <action type="WRITE_PV">
+          <pv_name>$(PREFIX)Start</pv_name>
+          <value>1</value>
+          <timeout>10</timeout>
+          <confirm_message></confirm_message>
+          <description>Start Service</description>
+        </action>
+      </actions>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.ActionButton" version="2.0.0">
+      <name>Stop</name>
+      <x>164</x>
+      <y>7</y>
+      <width>125</width>
+      <height>35</height>
+      <text>Stop</text>
+      <push_action_index>0</push_action_index>
+      <toggle_button>false</toggle_button>
+      <foreground_color>
+        <color red="255" green="255" blue="255" />
+      </foreground_color>
+      <background_color>
+        <color red="255" green="0" blue="0" />
+      </background_color>
+      <font>
+        <fontdata fontName="Liberation Sans" height="16" style="1" />
+      </font>
+      <actions hook="false" hook_all="false">
+        <action type="WRITE_PV">
+          <pv_name>$(PREFIX)Stop</pv_name>
+          <value>1</value>
+          <timeout>10</timeout>
+          <confirm_message>Are you sure you want to stop $(SVC)?</confirm_message>
+          <description>Stop Service</description>
+        </action>
+      </actions>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.ActionButton" version="2.0.0">
+      <name>Restart</name>
+      <x>314</x>
+      <y>7</y>
+      <width>125</width>
+      <height>35</height>
+      <text>Restart</text>
+      <push_action_index>0</push_action_index>
+      <toggle_button>false</toggle_button>
+      <font>
+        <fontdata fontName="Liberation Sans" height="16" style="1" />
+      </font>
+      <actions hook="false" hook_all="false">
+        <action type="WRITE_PV">
+          <pv_name>$(PREFIX)Restart</pv_name>
+          <value>1</value>
+          <timeout>10</timeout>
+          <confirm_message>Are you sure you want to restart $(SVC)?</confirm_message>
+          <description>Restart Service</description>
+        </action>
+      </actions>
+    </widget>
+  </widget>
+
+  <!-- Logs group -->
+  <widget typeId="org.csstudio.opibuilder.widgets.groupingContainer" version="1.0.0">
+    <name>Logs</name>
+    <x>500</x>
+    <y>35</y>
+    <width>690</width>
+    <height>525</height>
+    <transparent>true</transparent>
+    <show_scrollbar>false</show_scrollbar>
+    <lock_children>false</lock_children>
+    <border_style>13</border_style>
+    <border_width>1</border_width>
+    <border_color>
+      <color red="0" green="149" blue="255" />
+    </border_color>
+    <foreground_color>
+      <color red="0" green="149" blue="255" />
+    </foreground_color>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.TextUpdate" version="1.0.0">
+      <name>Logs</name>
+      <pv_name>$(PREFIX)Logs</pv_name>
+      <x>0</x>
+      <y>10</y>
+      <width>652</width>
+      <height>477</height>
+      <format_type>4</format_type>
+      <transparent>true</transparent>
+      <wrap_words>false</wrap_words>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <vertical_alignment>0</vertical_alignment>
+    </widget>
+  </widget>
+
+  <!-- Command Interface group -->
+  <widget typeId="org.csstudio.opibuilder.widgets.groupingContainer" version="1.0.0">
+    <name>Command Interface</name>
+    <x>500</x>
+    <y>560</y>
+    <width>690</width>
+    <height>80</height>
+    <transparent>true</transparent>
+    <show_scrollbar>false</show_scrollbar>
+    <lock_children>false</lock_children>
+    <border_style>13</border_style>
+    <border_width>1</border_width>
+    <border_color>
+      <color red="0" green="149" blue="255" />
+    </border_color>
+    <foreground_color>
+      <color red="0" green="149" blue="255" />
+    </foreground_color>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.TextInput" version="2.0.0">
+      <name>Text Entry</name>
+      <pv_name>$(ASYN_IO).AOUT</pv_name>
+      <x>12</x>
+      <y>7</y>
+      <width>500</width>
+      <height>35</height>
+      <border_alarm_sensitive>false</border_alarm_sensitive>
+      <background_color>
+        <color red="204" green="204" blue="204" />
+      </background_color>
+    </widget>
+
+    <widget typeId="org.csstudio.opibuilder.widgets.ActionButton" version="2.0.0">
+      <name>AsynIO</name>
+      <x>522</x>
+      <y>7</y>
+      <width>125</width>
+      <height>35</height>
+      <text>AsynIO</text>
+      <push_action_index>0</push_action_index>
+      <toggle_button>false</toggle_button>
+      <foreground_color>
+        <color red="255" green="255" blue="255" />
+      </foreground_color>
+      <background_color>
+        <color red="0" green="149" blue="255" />
+      </background_color>
+      <font>
+        <fontdata fontName="Liberation Sans" height="16" style="1" />
+      </font>
+      <actions hook="false" hook_all="false">
+        <action type="OPEN_DISPLAY">
+          <path>asynRecord.opi</path>
+          <macros>
+            <include_parent_macros>true</include_parent_macros>
+            <P>$(ASYN_IO)</P>
+          </macros>
+          <mode>0</mode>
+          <description>Asyn record</description>
+        </action>
+      </actions>
+    </widget>
+  </widget>
+</display>
