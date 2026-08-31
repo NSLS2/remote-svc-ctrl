@@ -5,6 +5,7 @@ import re
 import subprocess
 from datetime import datetime
 
+from .log import logger
 from .ssh import wrap_remote
 from .systemd import MemoryUsage, ServiceStatus
 
@@ -48,10 +49,12 @@ def run_service(
         returned rather than discarded.
     """
     args = ["service", service, command]
-    if use_sudo and command != "status" and not _user_is_root(host):
+    needs_sudo = use_sudo and command != "status" and not _user_is_root(host)
+    if needs_sudo:
         args = ["sudo", "-n", *args]
+    logger.info(f"Running service {service} {command} (sudo={needs_sudo})")
     result = subprocess.run(
-        wrap_remote(args, host),
+        wrap_remote(args, host, force_tty=needs_sudo),
         capture_output=True,
         text=True,
         timeout=10,
@@ -62,7 +65,9 @@ def run_service(
             or result.stdout.strip()
             or f"Exit code {result.returncode}"
         )
+        logger.error(f"Service {service} {command} failed: {msg}")
         raise RuntimeError(msg)
+    logger.debug(f"Service {service} {command} returned code {result.returncode}")
     return result
 
 
@@ -171,8 +176,10 @@ def get_process_stats(
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     except (subprocess.SubprocessError, OSError):
+        logger.debug(f"Failed to get process stats for PID {pid}", exc_info=True)
         return empty
     if result.returncode != 0:
+        logger.debug(f"ps for PID {pid} returned exit code {result.returncode}")
         return empty
     return _parse_process_stats(result.stdout)
 
@@ -213,8 +220,10 @@ def get_process_memory(pid: int, host: str | None = None) -> MemoryUsage:
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     except (subprocess.SubprocessError, OSError):
+        logger.debug(f"Failed to read /proc/{pid}/status", exc_info=True)
         return empty
     if result.returncode != 0:
+        logger.debug(f"/proc/{pid}/status returned exit code {result.returncode}")
         return empty
     return _parse_proc_status_memory(result.stdout)
 
@@ -244,8 +253,10 @@ def get_process_start(pid: int, host: str | None = None) -> datetime | None:
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     except (subprocess.SubprocessError, OSError):
+        logger.debug(f"Failed to get start time for PID {pid}", exc_info=True)
         return None
     if result.returncode != 0:
+        logger.debug(f"ps lstart for PID {pid} returned exit code {result.returncode}")
         return None
     return _parse_ps_lstart(result.stdout)
 
@@ -268,12 +279,15 @@ def is_service_enabled(service: str, host: str | None = None) -> str:
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     except (subprocess.SubprocessError, OSError):
+        logger.warning(f"chkconfig lookup failed for {service}", exc_info=True)
         return ""
     # `chkconfig <name>` exits 0 when on in the current runlevel, non-zero when
     # off; an error on stderr (e.g. unknown service) means the state is unknown.
     if result.returncode == 0:
+        logger.debug(f"Service {service} is enabled via chkconfig")
         return "enabled"
     if result.stderr.strip():
+        logger.debug(f"chkconfig error for {service}: {result.stderr.strip()}")
         return ""
     return "disabled"
 
@@ -301,6 +315,7 @@ def read_process_logs(pid: int, host: str | None = None, lines: int = 20) -> lis
         try:
             target = subprocess.run(resolve, capture_output=True, text=True, timeout=10)
         except (subprocess.SubprocessError, OSError):
+            logger.debug(f"Failed to resolve /proc/{pid}/fd/{fd}", exc_info=True)
             continue
         path = target.stdout.strip()
         if (
@@ -316,9 +331,11 @@ def read_process_logs(pid: int, host: str | None = None, lines: int = 20) -> lis
         try:
             result = subprocess.run(tail, capture_output=True, text=True, timeout=10)
         except (subprocess.SubprocessError, OSError):
+            logger.debug(f"Failed to tail {path} for PID {pid}", exc_info=True)
             continue
         if result.returncode == 0:
             collected += [ln for ln in result.stdout.splitlines() if ln.strip()]
+    logger.debug(f"Read {len(collected)} log lines from process {pid}")
     return collected
 
 
@@ -375,7 +392,9 @@ def read_initd_description(service: str, host: str | None = None) -> str:
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     except (subprocess.SubprocessError, OSError):
+        logger.warning(f"Failed to read /etc/init.d/{service}", exc_info=True)
         return ""
     if result.returncode != 0:
+        logger.debug(f"/etc/init.d/{service} not readable (exit {result.returncode})")
         return ""
     return _parse_initd_description(result.stdout)

@@ -12,6 +12,7 @@ from typing import Protocol
 from epicsdbbuilder import SetSimpleRecordNames
 from softioc import alarm, builder, softioc
 from softioc.asyncio_dispatcher import AsyncioDispatcher
+from .log import logger, set_log_level
 
 from ._version import __version__  # noqa: F401
 from .initd import (
@@ -455,10 +456,7 @@ def create_ioc(
         """Update EGU field only when it changes, via direct memory write."""
         if egu_cache.get(pv._name) != egu:
             log.info(
-                "Updating EGU for %s: %s -> %s",
-                pv._name,
-                egu_cache.get(pv._name, ""),
-                egu,
+                f"Updating EGU for {pv._name}: {egu_cache.get(pv._name, '')} -> {egu}"
             )
             pv._record.EGU = egu
             egu_cache[pv._name] = egu

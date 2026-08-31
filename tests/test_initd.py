@@ -142,7 +142,11 @@ def test_run_service_sudo_for_nonroot_remote_user(mocker: MockerFixture):
     run_service("start", "my-app", host="user@server", use_sudo=True)
 
     mock_run.assert_called_once_with(
-        wrap_remote(["sudo", "-n", "service", "my-app", "start"], "user@server"),
+        wrap_remote(
+            ["sudo", "-n", "service", "my-app", "start"],
+            "user@server",
+            force_tty=True,
+        ),
         capture_output=True,
         text=True,
         timeout=10,

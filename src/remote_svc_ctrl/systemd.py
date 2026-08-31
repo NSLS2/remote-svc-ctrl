@@ -5,6 +5,7 @@ import subprocess
 from dataclasses import dataclass
 from datetime import datetime
 
+from .log import logger
 from .ssh import wrap_remote
 
 
@@ -29,6 +30,7 @@ def run_systemctl(
         args.append(f"--lines={lines}")
     args += [command, service]
     cmd = wrap_remote(args, host)
+    logger.info(f"Running systemctl {command} {service}")
     result = subprocess.run(
         cmd,
         capture_output=True,
@@ -43,7 +45,9 @@ def run_systemctl(
             or result.stdout.strip()
             or f"Exit code {result.returncode}"
         )
+        logger.error(f"systemctl {command} {service} failed: {msg}")
         raise RuntimeError(msg)
+    logger.debug(f"systemctl {command} {service} returned code {result.returncode}")
     return result.stdout
 
 
