@@ -53,6 +53,20 @@ sudo systemctl daemon-reload
 sudo systemctl restart xspd
 ```
 
+> **Tip:** Once the service logs to a file, you can have the IOC tail that file
+> directly instead of parsing the journal out of `systemctl status`. Pass
+> `--log-file` (and optionally `--log-lines N`, default 20). This works for
+> systemd services just as it does for init.d, and sidesteps journal
+> permissions entirely:
+>
+> ```bash
+> remote-svc-ctrl "XF:28ID1-CT{SVC-Xspd:1}" xspd.service --host xspadmin@xspserver \
+>     --log-file /var/log/xspd.log --log-lines 100
+> ```
+>
+> When `--log-file` is set it takes precedence over the journal lines from
+> `systemctl status`.
+
 ### Log Rotation
 
 For long-running services, configure logrotate to prevent the file from growing

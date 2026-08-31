@@ -11,7 +11,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from .log import logger
+from ._log import logger
 
 # Seconds to keep the shared ssh master connection alive after its last use.
 CONTROL_PERSIST = 60

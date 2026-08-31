@@ -12,8 +12,8 @@ from typing import Protocol
 from epicsdbbuilder import SetSimpleRecordNames
 from softioc import alarm, builder, softioc
 from softioc.asyncio_dispatcher import AsyncioDispatcher
-from .log import logger, set_log_level
 
+from ._log import logger
 from ._version import __version__  # noqa: F401
 from .initd import (
     get_process_memory,
@@ -29,6 +29,28 @@ from .ssh import close_connection, read_log_file
 from .systemd import ServiceStatus, parse_systemctl_status, run_systemctl
 
 log = logging.getLogger(__name__)
+
+# systemd unit suffixes; a bare name without one is assumed to be a service.
+_UNIT_SUFFIXES = (
+    ".service",
+    ".socket",
+    ".device",
+    ".mount",
+    ".automount",
+    ".swap",
+    ".target",
+    ".path",
+    ".timer",
+    ".slice",
+    ".scope",
+)
+
+
+def _ensure_service_suffix(name: str) -> str:
+    """Append '.service' to a unit name that has no systemd unit suffix."""
+    if name.endswith(_UNIT_SUFFIXES):
+        return name
+    return f"{name}.service"
 
 
 class ServiceBackend(Protocol):
@@ -53,7 +75,7 @@ class SystemdBackend:
         log_file: str | None = None,
         log_lines: int = 20,
     ):
-        self.service = service
+        self.service = _ensure_service_suffix(service)
         self.host = host
         self.log_file = log_file
         self.log_lines = log_lines
@@ -574,7 +596,8 @@ def main():
     parser.add_argument("prefix", help="PV prefix (e.g. 'XF:28ID-CT{Svc:MyApp}')")
     parser.add_argument(
         "service",
-        help="Service name (e.g. 'my-app.service' for systemd, 'my-app' for init.d)",
+        help="Service name (e.g. 'my-app' or 'my-app.service' for systemd; "
+        "'.service' is appended automatically. Use the bare name for init.d)",
     )
     parser.add_argument(
         "--host",

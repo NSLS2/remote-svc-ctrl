@@ -1,3 +1,5 @@
+"""Logging utilities for remote-svc-ctrl."""
+
 import logging
 import sys
 
@@ -59,6 +61,7 @@ logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 logger.propagate = False
 
+
 def set_log_level(level: str | int) -> None:
     """Set the log level for the logger.
 
@@ -69,7 +72,7 @@ def set_log_level(level: str | int) -> None:
     """
     if isinstance(level, str):
         level = level.upper()
-        if level not in logging._nameToLevel:
+        if level not in logging._nameToLevel:  # noqa: SLF001
             raise ValueError(f"Invalid log level: {level}")
-        level = logging._nameToLevel[level]
+        level = logging._nameToLevel[level]  # noqa: SLF001
     logger.setLevel(level)

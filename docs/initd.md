@@ -77,12 +77,13 @@ never used. If the user is non-root, `sudo -n` is applied to `start`, `stop` and
 `restart` only. Read-only monitoring (`status`, `ps`, `chkconfig`, reading the
 script) is never elevated.
 
-Grant the IOC user (here `softioc-tst`) password-less permission to run the
+Grant the user (here `det`) password-less permission to run the
 `service` command for the specific service by creating
-`/etc/sudoers.d/remote-svc-ctrl-my-app`:
+`/etc/sudoers.d/remote-svc-ctrl-my-app`. The IOC always invokes `service` by its
+absolute path, `/sbin/service`, so the rule must authorize that exact path:
 
 ```sudoers
-softioc-tst ALL=(root) NOPASSWD: /usr/sbin/service my-app start, /usr/sbin/service my-app stop, /usr/sbin/service my-app restart
+det ALL=NOPASSWD: /sbin/service my-app start, /sbin/service my-app stop, /sbin/service my-app restart
 ```
 
 Install it with the correct ownership and mode, and validate the syntax before
@@ -95,16 +96,38 @@ sudo chmod 440 /etc/sudoers.d/remote-svc-ctrl-my-app
 ```
 
 > The `-n` (non-interactive) flag makes `sudo` fail immediately instead of
-> prompting for a password, so the sudoers rule **must** be `NOPASSWD`. Verify
-> the exact `service` path with `command -v service` on the target host, and
-> point the sudoers rule at it.
+> prompting for a password, so the sudoers rule **must** be `NOPASSWD`. Confirm
+> that `/sbin/service` exists on the target host (`ls -l /sbin/service`); on some
+> distributions the binary is at `/usr/sbin/service`.
+
+### Troubleshooting sudo
+
+If `sudo -n /sbin/service my-app restart` still prompts for a password after
+adding the rule, check these on the target host — in order, they are the usual
+culprits:
+
+- **`#includedir` is present.** Drop-in files under `/etc/sudoers.d/` are only
+  read if `/etc/sudoers` contains an `#includedir /etc/sudoers.d` line.
+  Without it your rule is silently ignored (this is the most common cause):
+  ```bash
+  sudo grep -n includedir /etc/sudoers
+  ```
+- **Ownership/mode** must be `root:root` and `0440`, or sudo skips the file.
+- **The rule is actually in effect.** `sudo -l` lists what the user may run —
+  you should see a `NOPASSWD: /sbin/service my-app ...` line. If you only see a
+  broad `(ALL) ALL`, a later rule is overriding yours (sudo is *last-match-wins*)
+  — rename the drop-in so it sorts last, e.g. `zz-remote-svc-ctrl-my-app`.
+- **Cached credential masks the test.** A recent `sudo` caches its timestamp, so
+  `-n` can appear to work even when the rule is wrong. Clear it with `sudo -k`
+  before testing.
 
 ### Verifying
 
 As the IOC user on the target host:
 
 ```bash
-sudo -n service my-app restart
+sudo -k                                  # clear any cached sudo credential
+sudo -n /sbin/service my-app restart
 service my-app status
 ```
 

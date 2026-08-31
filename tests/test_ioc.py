@@ -8,6 +8,7 @@ from remote_svc_ctrl.ioc import (
     LoadState,
     Severity,
     SubState,
+    _ensure_service_suffix,
     _format_cpu_time,
     _format_duration,
     _format_memory,
@@ -15,6 +16,27 @@ from remote_svc_ctrl.ioc import (
     _mbbi_labels,
     _state_index,
 )
+
+# --- _ensure_service_suffix ---
+
+
+def test_ensure_service_suffix_appends_for_bare_name():
+    assert _ensure_service_suffix("my-app") == "my-app.service"
+
+
+def test_ensure_service_suffix_keeps_existing_service_suffix():
+    assert _ensure_service_suffix("my-app.service") == "my-app.service"
+
+
+def test_ensure_service_suffix_keeps_other_unit_suffixes():
+    assert _ensure_service_suffix("foo.socket") == "foo.socket"
+    assert _ensure_service_suffix("foo.timer") == "foo.timer"
+
+
+def test_ensure_service_suffix_appends_when_name_has_dots():
+    # A dot in the name is not a unit suffix.
+    assert _ensure_service_suffix("my.app") == "my.app.service"
+
 
 # --- Enum labels ---
 

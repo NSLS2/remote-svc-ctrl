@@ -5,7 +5,7 @@ import subprocess
 from dataclasses import dataclass
 from datetime import datetime
 
-from .log import logger
+from ._log import logger
 from .ssh import wrap_remote
 
 

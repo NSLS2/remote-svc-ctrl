@@ -5,7 +5,7 @@ import re
 import subprocess
 from datetime import datetime
 
-from .log import logger
+from ._log import logger
 from .ssh import wrap_remote
 from .systemd import MemoryUsage, ServiceStatus
 
