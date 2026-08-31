@@ -368,6 +368,12 @@ def create_ioc(
         else SystemdBackend(service, host, log_file, log_lines)
     )
 
+    backend_name = "initd" if use_initd else "systemd"
+    logger.info(
+        f"remote-svc-ctrl {__version__} starting: "
+        f"prefix={prefix} service={service} host={host} backend={backend_name}"
+    )
+
     SetSimpleRecordNames(prefix=prefix, separator="")
 
     # --- Status PVs (read-only) ---
@@ -532,6 +538,10 @@ def create_ioc(
                 _status_msg(
                     f"{state_str} load={status.load_state} enabled={status.enabled}"
                 )
+                logger.info(
+                    f"Initial state: {state_str} "
+                    f"load={status.load_state} enabled={status.enabled}"
+                )
                 nonlocal last_states
                 last_states = current_states
                 first_poll = False
@@ -546,7 +556,9 @@ def create_ioc(
                     parts.append(f"load={status.load_state}")
                 if current_states.enabled != last_states.enabled:
                     parts.append(f"enabled={status.enabled}")
-                _status_msg(" ".join(parts))
+                change_msg = " ".join(parts)
+                _status_msg(change_msg)
+                logger.info(f"Service state changed: {change_msg}")
                 last_states = current_states
 
             await asyncio.sleep(1)

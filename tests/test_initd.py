@@ -145,7 +145,6 @@ def test_run_service_sudo_for_nonroot_remote_user(mocker: MockerFixture):
         wrap_remote(
             ["sudo", "-n", "service", "my-app", "start"],
             "user@server",
-            force_tty=True,
         ),
         capture_output=True,
         text=True,

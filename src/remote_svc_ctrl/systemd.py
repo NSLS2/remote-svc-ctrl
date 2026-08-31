@@ -30,7 +30,10 @@ def run_systemctl(
         args.append(f"--lines={lines}")
     args += [command, service]
     cmd = wrap_remote(args, host)
-    logger.info(f"Running systemctl {command} {service}")
+    if command == "status":
+        logger.debug(f"Running systemctl {command} {service}")
+    else:
+        logger.info(f"Running systemctl {command} {service}")
     result = subprocess.run(
         cmd,
         capture_output=True,

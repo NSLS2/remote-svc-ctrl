@@ -28,9 +28,7 @@ def control_path(host: str) -> str:
     return str(Path(tempfile.gettempdir()) / name)
 
 
-def wrap_remote(
-    args: list[str], host: str | None, force_tty: bool = False
-) -> list[str]:
+def wrap_remote(args: list[str], host: str | None) -> list[str]:
     """Wrap a command in a non-interactive ssh call when a host is given.
 
     Uses ssh connection multiplexing (ControlMaster) so repeated remote
@@ -49,11 +47,9 @@ def wrap_remote(
             "-o",
             f"ControlPersist={CONTROL_PERSIST}",
         ]
-        if force_tty:
-            cmd.append("-tt")
         # Ensure /sbin and /usr/sbin are on PATH for remote commands.
         cmd.extend([host, "PATH=$PATH:/sbin:/usr/sbin", *args])
-        logger.debug(f"Remote command on {host}: {args} (tty={force_tty})")
+        logger.debug(f"Remote command on {host}: {args}")
         return cmd
     return args
 

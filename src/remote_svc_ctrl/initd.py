@@ -52,9 +52,12 @@ def run_service(
     needs_sudo = use_sudo and command != "status" and not _user_is_root(host)
     if needs_sudo:
         args = ["sudo", "-n", *args]
-    logger.info(f"Running service {service} {command} (sudo={needs_sudo})")
+    if command == "status":
+        logger.debug(f"Running service {service} {command}")
+    else:
+        logger.info(f"Running service {service} {command} (sudo={needs_sudo})")
     result = subprocess.run(
-        wrap_remote(args, host, force_tty=needs_sudo),
+        wrap_remote(args, host),
         capture_output=True,
         text=True,
         timeout=10,

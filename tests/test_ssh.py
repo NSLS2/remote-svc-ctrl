@@ -33,11 +33,6 @@ def test_wrap_remote_enables_control_master():
     assert "user@server" in wrapped
 
 
-def test_wrap_remote_force_tty():
-    wrapped = wrap_remote(["sudo", "-n", "service", "x", "restart"], "u@h", force_tty=True)
-    assert "-tt" in wrapped
-
-
 def test_control_path_is_stable_and_host_specific():
     assert control_path("user@server") == control_path("user@server")
     assert control_path("user@server") != control_path("other@host")
