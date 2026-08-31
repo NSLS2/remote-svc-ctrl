@@ -48,7 +48,8 @@ def run_service(
         returncode is meaningful for "status" (LSB exit codes), so it is
         returned rather than discarded.
     """
-    args = ["service", service, command]
+    # Full path so sudoers rules (e.g. NOPASSWD: /sbin/service ...) match exactly.
+    args = ["/sbin/service", service, command]
     needs_sudo = use_sudo and command != "status" and not _user_is_root(host)
     if needs_sudo:
         args = ["sudo", "-n", *args]

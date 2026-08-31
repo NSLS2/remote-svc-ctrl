@@ -42,7 +42,7 @@ def test_run_service_local(mocker: MockerFixture):
     result = run_service("status", "my-app")
 
     mock_run.assert_called_once_with(
-        ["service", "my-app", "status"],
+        ["/sbin/service", "my-app", "status"],
         capture_output=True,
         text=True,
         timeout=10,
@@ -58,7 +58,7 @@ def test_run_service_remote(mocker: MockerFixture):
     run_service("restart", "my-app", host="user@server")
 
     mock_run.assert_called_once_with(
-        wrap_remote(["service", "my-app", "restart"], "user@server"),
+        wrap_remote(["/sbin/service", "my-app", "restart"], "user@server"),
         capture_output=True,
         text=True,
         timeout=10,
@@ -96,7 +96,7 @@ def test_run_service_sudo_used_for_nonroot_control(mocker: MockerFixture):
     run_service("restart", "my-app", use_sudo=True)
 
     mock_run.assert_called_once_with(
-        ["sudo", "-n", "service", "my-app", "restart"],
+        ["sudo", "-n", "/sbin/service", "my-app", "restart"],
         capture_output=True,
         text=True,
         timeout=10,
@@ -112,7 +112,7 @@ def test_run_service_no_sudo_for_root_local(mocker: MockerFixture):
     run_service("restart", "my-app", use_sudo=True)
 
     mock_run.assert_called_once_with(
-        ["service", "my-app", "restart"],
+        ["/sbin/service", "my-app", "restart"],
         capture_output=True,
         text=True,
         timeout=10,
@@ -127,7 +127,7 @@ def test_run_service_no_sudo_for_root_remote_user(mocker: MockerFixture):
     run_service("restart", "my-app", host="root@server", use_sudo=True)
 
     mock_run.assert_called_once_with(
-        wrap_remote(["service", "my-app", "restart"], "root@server"),
+        wrap_remote(["/sbin/service", "my-app", "restart"], "root@server"),
         capture_output=True,
         text=True,
         timeout=10,
@@ -143,7 +143,7 @@ def test_run_service_sudo_for_nonroot_remote_user(mocker: MockerFixture):
 
     mock_run.assert_called_once_with(
         wrap_remote(
-            ["sudo", "-n", "service", "my-app", "start"],
+            ["sudo", "-n", "/sbin/service", "my-app", "start"],
             "user@server",
         ),
         capture_output=True,
@@ -162,7 +162,7 @@ def test_run_service_no_sudo_without_flag(mocker: MockerFixture):
     run_service("restart", "my-app")
 
     mock_run.assert_called_once_with(
-        ["service", "my-app", "restart"],
+        ["/sbin/service", "my-app", "restart"],
         capture_output=True,
         text=True,
         timeout=10,
@@ -178,7 +178,7 @@ def test_run_service_sudo_not_used_for_status(mocker: MockerFixture):
     run_service("status", "my-app", use_sudo=True)
 
     mock_run.assert_called_once_with(
-        ["service", "my-app", "status"],
+        ["/sbin/service", "my-app", "status"],
         capture_output=True,
         text=True,
         timeout=10,
